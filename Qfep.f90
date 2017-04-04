@@ -1,12 +1,19 @@
-MODULE Qfep
+PROGRAM Qfep
 
-  ! #DES: Module to produce and write the FEP/US calculation data in Qfep format. (SIC throughout)
+  ! #DES: Program to produce and write the FEP/US calculation data in Qfep format. (SIC throughout)
+
+  USE Util, ONLY : Startup, Cleanup
+  USE Data, ONLY : ComputeDerivedData
+  USE Qfep, ONLY : QfepAnalysis
+  USE Log,  ONLY : logUnit
 
   IMPLICIT NONE
   INTEGER, PARAMETER :: outUnit = 64
 
-  PRIVATE
-  PUBLIC :: QfepAnalysis
+    CALL Startup()
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.)
+    CALL QFepAnalysis()
+    CALL CleanUp()
 
   CONTAINS
 
