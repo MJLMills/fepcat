@@ -35,4 +35,5 @@ clean:
 	rm -f *.o *.mod *.MOD
 
 install:
-	mv Fep ../bin
+	mv Fepcat ../bin
+	mv Qfep ../bin
