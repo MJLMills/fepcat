@@ -5,7 +5,7 @@
  
   USE Util, ONLY : Startup, Cleanup
   USE Data, ONLY : ComputeDerivedData
-  USE Log, ONLY : logUnit
+  USE Log, ONLY  : logUnit
 
   IMPLICIT NONE
 
@@ -20,8 +20,8 @@
 
     SUBROUTINE FullAnalysis()
 
-      USE Input,    ONLY : stateEnergy, energyNames, mask, coeffs, skip, stateA, stateB, targetsPresent, dGTS, dGPS, nBins, minPop
-      USE Data,     ONLY : mappingEnergies, lambda, energyGap, groundStateEnergy
+      USE Input,    ONLY : stateEnergy, energyNames, mask, coeffs, skip, stateA, stateB !, targetsPresent, dGTS, dGPS, nBins, minPop
+      USE Data,     ONLY : mappingEnergies, lambda !, energyGap, groundStateEnergy
       USE Analysis, ONLY : AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, FepBreakdown
       USE FileIO,   ONLY : OpenFile, CloseFile
       USE FreeEnergy, ONLY : EVBParameters
@@ -29,12 +29,12 @@
       IMPLICIT NONE
       INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21
 
-      REAL(8) :: alpha(2), mu(2,2), A(2,2)
+!      REAL(8) :: alpha(2), mu(2,2), A(2,2)
 
-      IF (targetsPresent) THEN
-        CALL EVBParameters(mappingEnergies(:,:,:,1),energyGap(:,:),groundStateEnergy(:,:),mask(:,:),nBins,minPop,dGTS,dGPS,alpha(:),mu,A)
+!      IF (targetsPresent) THEN
+!        CALL EVBParameters(mappingEnergies(:,:,:,1),energyGap(:,:),groundStateEnergy(:,:),mask(:,:),nBins,minPop,dGTS,dGPS,alpha(:),mu,A)
 !        CALL WriteEVBParameterFile(alpha,A,mu)
-      ENDIF
+!     ENDIF
 
       CALL OpenFile(meanUnit,"MeanEnergy.csv",'write')
       CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,meanUnit)
