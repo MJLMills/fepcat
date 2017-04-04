@@ -294,14 +294,14 @@ MODULE FreeEnergy
       USE ArrayUtil, ONLY : linspace
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN)  :: N
-      REAL(8), INTENT(IN)  :: data(:,:)           !nFep x nTimesteps
-      LOGICAL, INTENT(IN)  :: useData(:,:)
+      INTEGER, INTENT(IN)  :: N                   ! Number of bins
+      REAL(8), INTENT(IN)  :: data(:,:)           ! values to histogram: nFep x nTimesteps
+      LOGICAL, INTENT(IN)  :: useData(:,:)        ! mask for data values
       INTEGER, INTENT(OUT) :: binPopulations(:,:)
       INTEGER, INTENT(OUT) :: binIndices(:,:)
       REAL(8), INTENT(OUT) :: binMidpoints(:)
 
-      LOGICAL, PARAMETER :: DEBUG = .FALSE.
+      LOGICAL, PARAMETER :: DEBUG = .TRUE.
       REAL(8) :: min, max, binWidth, binEdges(N+1)
       INTEGER :: bin, fepstep, timestep
 
