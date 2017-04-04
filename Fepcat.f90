@@ -3,6 +3,7 @@
   ! #DES: Program for free energy perturbation (FEP) calculations on molecular dynamics (MD) trajectories.
   ! #DES: For an empirical valence bond (EVB) potential of nStates states, compute the free energy change from stateA to stateB.
  
+  USE Util, ONLY : Startup, Cleanup
   USE Data, ONLY : ComputeDerivedData
   USE Qfep, ONLY : QfepAnalysis
   USE Log, ONLY : logUnit
@@ -29,6 +30,7 @@
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21
+
       REAL(8) :: alpha(2), mu(2,2), A(2,2)
 
       IF (targetsPresent) THEN
@@ -50,39 +52,5 @@
 !      CALL RunLinearResponse()
 
     END SUBROUTINE FullAnalysis
-
-!*
-
-    SUBROUTINE Startup()
-
-      ! #DES: Setup the calculation by creating a log file and reading the necessary input.
-
-      USE Log, ONLY   : CreateLogFile
-      USE Input, ONLY : ReadInput
-
-      IMPLICIT NONE
-
-        CALL CreateLogFile()
-        CALL ReadInput()
-
-    END SUBROUTINE StartUp
-
-!*
-
-    SUBROUTINE CleanUp()
-
-      ! #DES: Teardown the calculation by deallocating arrays and closing the log file.
-
-      USE Input, ONLY : DeallocateInputArrays
-      USE Data, ONLY  : DeallocateDataArrays
-      USE Log, ONLY   : EndLogFile
-
-      IMPLICIT NONE
-
-        CALL DeallocateInputArrays()
-        CALL DeallocateDataArrays()
-        CALL EndLogFile("Normal termination of Fepcat:")
-
-    ENDSUBROUTINE CleanUp
 
 END PROGRAM Fepcat
