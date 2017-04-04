@@ -4,7 +4,6 @@ PROGRAM Qfep
 
   USE Util, ONLY : Startup, Cleanup
   USE Data, ONLY : ComputeDerivedData
-  USE Qfep, ONLY : QfepAnalysis
   USE Log,  ONLY : logUnit
 
   IMPLICIT NONE
@@ -204,5 +203,5 @@ PROGRAM Qfep
 
     ENDSUBROUTINE AnalyzeFepUs_Q
 
-END MODULE Qfep
+END PROGRAM Qfep
 
