@@ -15,29 +15,32 @@ MODULE Analysis
 
       USE Output, ONLY : WriteCsv2D
       USE FileIO, ONLY : OpenFile, CloseFile
-      USE FreeEnergy, ONLY : ComputeFEPIncrements
+      USE FreeEnergy, ONLY : ComputeFEPProfile
       IMPLICIT NONE
       REAL(8), INTENT(IN) :: lambda(:), mappingEnergies(:,:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
       CHARACTER(*), INTENT(IN) :: energyNames(:)
 
       CHARACTER(15) :: head(1+SIZE(energyNames)) ! 1 per column
-      REAL(8) :: output(SIZE(mappingEnergies,2)-1,1+SIZE(energyNames))
+      REAL(8) :: output(SIZE(mappingEnergies,2),1+SIZE(energyNames))
       INTEGER :: step, type
       INTEGER, PARAMETER :: outUnit = 14
-      REAL(8) :: profile(SIZE(mappingEnergies,2)-1)
+      REAL(8) :: profile(SIZE(mappingEnergies,2))
 
       CALL OpenFile(outUnit,"fep-breakdown.csv","write")
 
       head(1) = "lambda"
       
       DO type = 1, SIZE(energyNames)
-        CALL ComputeFEPIncrements(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,type),mask(:,:),profile=profile)      
+
+        CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,type),mask(:,:),profile=profile)      
+
         head(type+1) = energyNames(type)
         DO step = 1, SIZE(mappingEnergies,2)
           output(step,1) = lambda(step)
-          output(step,type+1) = SUM(profile(1:step))
+          output(step,type+1) = profile(step)
         ENDDO
+
       ENDDO
 
       CALL WriteCSV2D(head,output,outUnit)
