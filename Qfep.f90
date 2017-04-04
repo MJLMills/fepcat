@@ -78,14 +78,18 @@ PROGRAM Qfep
 
       ! #DES: Reproduce the output simulation data table of Q (same data, slightly different format)
 
-      USE Input, ONLY : energyNames, stateEnergy, coeffs, mask
+      USE Input, ONLY : energyNames, stateEnergy, coeffs, mask, CreateFileNames, fileBase, nFepSteps
       USE StatisticalFunctions, ONLY : mean
 
       IMPLICIT NONE
       INTEGER :: name, fepstep, state, type
+      CHARACTER(500) :: fileNames(nFepSteps)
+
+      CALL CreateFileNames('en',fileBase,fileNames)
 
       WRITE(outUnit,'(A)') "# Part 0: Average energies for all states in all files"
       WRITE(outUnit,'(A9,1X,A5,1X,A8,1X,A9)',ADVANCE='NO') "FEP Index", "State", "Points", "Coeff"
+
       DO name = 1, SIZE(energyNames) !nEnergyTypes
         WRITE(outUnit,'(A11)',ADVANCE='NO') energyNames(name)
       ENDDO
@@ -93,7 +97,7 @@ PROGRAM Qfep
 
       DO fepstep = 1, SIZE(stateEnergy,2) !nFepSteps
         DO state = 1, SIZE(stateEnergy,3) !nStates
-          WRITE(outUnit,'(I9,1X,I5,1X,I8,1X,F9.6)',ADVANCE='NO') fepstep, state, COUNT(mask(fepstep,:)), coeffs(1,fepstep,state)
+          WRITE(outUnit,'(A,1X,I5,1X,I8,1X,F9.6)',ADVANCE='NO') TRIM(ADJUSTL(fileNames(fepstep))), state, COUNT(mask(fepstep,:)), coeffs(1,fepstep,state)
           DO type = 1, SIZE(energyNames)
             WRITE(outUnit,'(F11.2)',ADVANCE='NO') mean( stateEnergy(:,fepstep,state,type),mask=mask(fepstep,:) )
           ENDDO
