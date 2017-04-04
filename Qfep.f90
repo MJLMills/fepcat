@@ -160,15 +160,13 @@ PROGRAM Qfep
 
      USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy, lambda
      USE Input,      ONLY : Nbins, minPop, stateA, stateB, stateEnergy, mask
-     USE FreeEnergy, ONLY : Histogram, ComputeFepIncrements, FepUS
+     USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
 
      IMPLICIT NONE
      INTEGER :: bin, step, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
      REAL(8) :: binMidpoints(Nbins), dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
      REAL(8) :: binG(Nbins)
-     REAL(8) :: dG_FEP(SIZE(energyGap,1)-1), G_FEP(SIZE(energyGap,1))
-
-     INTEGER :: fepstep
+     REAL(8) :: G_FEP(SIZE(energyGap,1))
 
      WRITE(outUnit,'(A20,F7.2)') "# Min energy-gap is:", MINVAL(energyGap(:,:))
      WRITE(outUnit,'(A20,F7.2)') "# Max energy-gap is:", MAXVAL(energyGap(:,:))
@@ -178,11 +176,7 @@ PROGRAM Qfep
 
      CALL Histogram(energyGap,mask,Nbins,binPopulations,binIndices,binMidpoints)
 
-     CALL ComputeFEPIncrements(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=dG_FEP)
-     G_FEP(:) = 0.0d0
-     DO fepstep = 2, SIZE(energyGap,1)
-       G_FEP(fepstep) = SUM(dG_FEP(1:fepstep-1))
-     ENDDO
+     CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
 
      ! energyGap is the reaction coordinate, nBins is num histogram bins, binPop is histogram values,
      ! indices is which bin each point is in, binMidpoints is x values
