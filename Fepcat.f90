@@ -5,15 +5,13 @@
  
   USE Util, ONLY : Startup, Cleanup
   USE Data, ONLY : ComputeDerivedData
-  USE Qfep, ONLY : QfepAnalysis
   USE Log, ONLY : logUnit
 
   IMPLICIT NONE
 
     CALL Startup()
     CALL ComputeDerivedData(logUnit,doTiming=.FALSE.)
-    CALL FullAnalysis
-    CALL QfepAnalysis()
+    CALL FullAnalysis()
     CALL CleanUp()
 
   CONTAINS
