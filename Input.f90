@@ -35,7 +35,7 @@ MODULE Input
   ! The trajectory array holds all the Cartesian coordinates of the set of FEP simulations - Single Precision cos of the dcd format.
   REAL(4), ALLOCATABLE :: trajectory(:,:,:,:)
   ! #DES: These arrays hold the EVB parameters
-  REAL(8), ALLOCATABLE :: alpha(:), couplingConstant(:,:), couplingGaussExpFactor(:,:)
+  REAL(8), ALLOCATABLE :: alpha(:), couplingConstant(:,:), couplingGaussExpFactor(:,:), couplingExpExpFactor(:,:)
   REAL(8) :: beta
   LOGICAL :: targetsPresent = .FALSE.
 
@@ -62,11 +62,12 @@ MODULE Input
       ALLOCATE(stateEnergy(maxTimesteps,nFepSteps,nStates,nEnergyTypes)); stateEnergy = 0.0d0
       ALLOCATE(skip(nFepSteps));                                          skip(:) = 0
       ALLOCATE(mask(nFepSteps,maxTimesteps));                             mask(:,:) = .TRUE.
-      ALLOCATE(coeffs(maxTimesteps,nFepSteps,nStates));                   coeffs = 0.0d0
+      ALLOCATE(coeffs(maxTimesteps,nFepSteps,nStates));                   coeffs(:,:,:) = 0.0d0
 
-      ALLOCATE(alpha(nStates));                                           alpha = 0.0d0
-      ALLOCATE(couplingConstant(nStates,nStates));                               couplingConstant = 0.0d0
-      ALLOCATE(couplingGaussExpFactor(nStates,nStates));                        couplingGaussExpFactor = 0.0d0
+      ALLOCATE(alpha(nStates));                                           alpha(:)                    = 0.0d0
+      ALLOCATE(couplingConstant(nStates,nStates));                        couplingConstant(:,:)       = 0.0d0
+      ALLOCATE(couplingGaussExpFactor(nStates,nStates));                  couplingGaussExpFactor(:,:) = 0.0d0
+      ALLOCATE(couplingExpExpFactor(nStates,nStates));                    couplingExpExpFactor(:,:)   = 0.0d0
 
     END SUBROUTINE AllocateInputArrays
 
@@ -78,15 +79,16 @@ MODULE Input
 
       IMPLICIT NONE
 
-      IF (ALLOCATED(stateEnergy))      DEALLOCATE(stateEnergy)
-      IF (ALLOCATED(coeffs))           DEALLOCATE(coeffs)
-      IF (ALLOCATED(alpha))            DEALLOCATE(alpha)
+      IF (ALLOCATED(stateEnergy))             DEALLOCATE(stateEnergy)
+      IF (ALLOCATED(coeffs))                  DEALLOCATE(coeffs)
+      IF (ALLOCATED(alpha))                   DEALLOCATE(alpha)
       IF (ALLOCATED(couplingConstant))        DEALLOCATE(couplingConstant)
-      IF (ALLOCATED(couplingGaussExpFactor)) DEALLOCATE(couplingGaussExpFactor)
-      IF (ALLOCATED(skip))             DEALLOCATE(skip)
-      IF (ALLOCATED(nTimesteps))       DEALLOCATE(nTimesteps)
-      IF (ALLOCATED(mask))             DEALLOCATE(mask)
-      IF (ALLOCATED(trajectory))       DEALLOCATE(trajectory)
+      IF (ALLOCATED(couplingGaussExpFactor))  DEALLOCATE(couplingGaussExpFactor)
+      IF (ALLOCATED(couplingExpExpFactor))    DEALLOCATE(couplingExpExpFactor)
+      IF (ALLOCATED(skip))                    DEALLOCATE(skip)
+      IF (ALLOCATED(nTimesteps))              DEALLOCATE(nTimesteps)
+      IF (ALLOCATED(mask))                    DEALLOCATE(mask)
+      IF (ALLOCATED(trajectory))              DEALLOCATE(trajectory)
 
     END SUBROUTINE DeallocateInputArrays
 
@@ -267,7 +269,7 @@ MODULE Input
 
         DO i = 1, nStates
           DO j = i+1, nstates
-            READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingGaussExpFactor(i,j)
+            READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingExpExpFactor(i,j), couplingGaussExpFactor(i,j)
           ENDDO
         ENDDO
 
@@ -309,10 +311,10 @@ MODULE Input
       WRITE(logUnit,*)
 
       WRITE(logUnit,'(A27)') "* Off-Diagonal Parameters *"
-      WRITE(logUnit,'(A)') "i   j   A   mu"
+      WRITE(logUnit,'(A)') "i   j   A   mu   eta"
       DO i = 1, nStates
         DO j = i+1, nStates
-          WRITE(logUnit,'(2I4,2F7.3)') i, j, couplingConstant(i,j), couplingGaussExpFactor(i,j)
+          WRITE(logUnit,'(2I4,3F7.3)') i, j, couplingConstant(i,j), couplingExpExpFactor(i,j), couplingGaussExpFactor(i,j)
         ENDDO
       ENDDO
       WRITE(logUnit,*)
@@ -342,7 +344,7 @@ MODULE Input
 
       DO i = 1, nStates
         DO j = i+1 , nStates
-          WRITE(prmUnit,'(2I4,2F7.3)') i, j, 0.0d0, 0.0d0
+          WRITE(prmUnit,'(2I4,3F7.3)') i, j, 0.0d0, 0.0d0, 0.0d0
         ENDDO 
       ENDDO
 
