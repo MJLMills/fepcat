@@ -35,7 +35,7 @@ MODULE Input
   ! The trajectory array holds all the Cartesian coordinates of the set of FEP simulations - Single Precision cos of the dcd format.
   REAL(4), ALLOCATABLE :: trajectory(:,:,:,:)
   ! #DES: These arrays hold the EVB parameters
-  REAL(8), ALLOCATABLE :: alpha(:), couplingA(:,:), couplingExponent(:,:)
+  REAL(8), ALLOCATABLE :: alpha(:), couplingConstant(:,:), couplingExponent(:,:)
   REAL(8) :: beta
   LOGICAL :: targetsPresent = .FALSE.
 
@@ -65,7 +65,7 @@ MODULE Input
       ALLOCATE(coeffs(maxTimesteps,nFepSteps,nStates));                   coeffs = 0.0d0
 
       ALLOCATE(alpha(nStates));                                           alpha = 0.0d0
-      ALLOCATE(couplingA(nStates,nStates));                               couplingA = 0.0d0
+      ALLOCATE(couplingConstant(nStates,nStates));                               couplingConstant = 0.0d0
       ALLOCATE(couplingExponent(nStates,nStates));                        couplingExponent = 0.0d0
 
     END SUBROUTINE AllocateInputArrays
@@ -81,7 +81,7 @@ MODULE Input
       IF (ALLOCATED(stateEnergy))      DEALLOCATE(stateEnergy)
       IF (ALLOCATED(coeffs))           DEALLOCATE(coeffs)
       IF (ALLOCATED(alpha))            DEALLOCATE(alpha)
-      IF (ALLOCATED(couplingA))        DEALLOCATE(couplingA)
+      IF (ALLOCATED(couplingConstant))        DEALLOCATE(couplingConstant)
       IF (ALLOCATED(couplingExponent)) DEALLOCATE(couplingExponent)
       IF (ALLOCATED(skip))             DEALLOCATE(skip)
       IF (ALLOCATED(nTimesteps))       DEALLOCATE(nTimesteps)
@@ -267,7 +267,7 @@ MODULE Input
 
         DO i = 1, nStates
           DO j = i+1, nstates
-            READ(prmUnit,*) dummy, dummy, couplingA(i,j), couplingExponent(i,j)
+            READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingExponent(i,j)
           ENDDO
         ENDDO
 
@@ -312,7 +312,7 @@ MODULE Input
       WRITE(logUnit,'(A)') "i   j   A   mu"
       DO i = 1, nStates
         DO j = i+1, nStates
-          WRITE(logUnit,'(2I4,2F7.3)') i, j, couplingA(i,j), couplingExponent(i,j)
+          WRITE(logUnit,'(2I4,2F7.3)') i, j, couplingConstant(i,j), couplingExponent(i,j)
         ENDDO
       ENDDO
       WRITE(logUnit,*)

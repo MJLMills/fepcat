@@ -90,7 +90,7 @@ MODULE Data
     ENDSUBROUTINE ComputeGeometricRC
 
 !* OFF until needed
-!    SUBROUTINE RecomputeDependentData(alpha,couplingA,couplingExponent)
+!    SUBROUTINE RecomputeDependentData(alpha,couplingConstant,couplingExponent)
 !
       ! #DES: Recompute all quantities that depend on the EVB parameters
 !
@@ -100,7 +100,7 @@ MODULE Data
 !      CALL ComputeMappingEnergies(alpha)
 !      CALL ComputeEnergyGap(alpha)
 !      CALL ComputeGroundStateEnergy(alpha)
-!      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent)
+!      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExponent)
 
 !    END SUBROUTINE RecomputeDependentData
 
@@ -111,7 +111,7 @@ MODULE Data
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
 
-      USE Input, ONLY : alpha, readTrajectory, couplingA, couplingExponent
+      USE Input, ONLY : alpha, readTrajectory, couplingConstant, couplingExponent
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: doTiming
@@ -138,7 +138,7 @@ MODULE Data
         CALL ComputeGroundStateEnergy(alpha)
       ENDIF
 
-      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent)
+      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExponent)
 
       ! This should only be called when trajectory information is available
       IF (readTrajectory) CALL ComputeGeometricRC()
@@ -161,12 +161,12 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeOffDiagonals(RC,couplingA,couplingExponent)
+    SUBROUTINE ComputeOffDiagonals(RC,couplingConstant,couplingExponent)
 
       ! #DES: Compute the off-diagonals for the EVB Hamiltonian so the GS can be evaluated
       USE Input, ONLY : nStates
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: RC(:,:), couplingA(:,:), couplingExponent(:,:)
+      REAL(8), INTENT(IN) :: RC(:,:), couplingConstant(:,:), couplingExponent(:,:)
       INTEGER :: step, timestep, i, j
 
       OffDiagonals = 0.0d0
@@ -174,7 +174,7 @@ MODULE Data
         DO timestep = 1, SIZE(energyGap,2)
           DO i = 1, nStates
             DO j = i+1, nStates
-              OffDiagonals(timestep,step,i,j) = couplingA(i,j) * EXP(-1.0*couplingExponent(i,j)*RC(step,timestep)*RC(step,timestep))
+              OffDiagonals(timestep,step,i,j) = couplingConstant(i,j) * EXP(-1.0*couplingExponent(i,j)*RC(step,timestep)*RC(step,timestep))
               OffDiagonals(timestep,step,j,i) = OffDiagonals(timestep,step,i,j) ! EVB Hamiltonian must be symmetric
             ENDDO
           ENDDO
