@@ -1,3 +1,6 @@
+! These are routines common to most potential main programs that use the modules within.
+! Reads input, creates log file, then post-calculation deallocates all data and closes the log.
+
 MODULE Util
 
   CONTAINS
