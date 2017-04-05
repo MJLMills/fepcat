@@ -178,7 +178,6 @@ MODULE Data
               expTerm   = expExpFactor(i,j)   * RC(step,timestep)
               gaussTerm = gaussExpFactor(i,j) * RC(step,timestep) * RC(step,timestep)
               OffDiagonals(timestep,step,i,j) = couplingConstant(i,j) * EXP( -1.0 * (expTerm + gaussTerm))
-              WRITE(*,*) OffDiagonals(timestep,step,i,j)
               OffDiagonals(timestep,step,j,i) = OffDiagonals(timestep,step,i,j) ! EVB Hamiltonian must be symmetric
             ENDDO
           ENDDO
