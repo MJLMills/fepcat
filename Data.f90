@@ -90,7 +90,7 @@ MODULE Data
     ENDSUBROUTINE ComputeGeometricRC
 
 !* OFF until needed
-!    SUBROUTINE RecomputeDependentData(alpha)
+!    SUBROUTINE RecomputeDependentData(alpha,couplingA,couplingExponent)
 !
       ! #DES: Recompute all quantities that depend on the EVB parameters
 !
@@ -100,6 +100,7 @@ MODULE Data
 !      CALL ComputeMappingEnergies(alpha)
 !      CALL ComputeEnergyGap(alpha)
 !      CALL ComputeGroundStateEnergy(alpha)
+!      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent)
 
 !    END SUBROUTINE RecomputeDependentData
 
@@ -110,7 +111,7 @@ MODULE Data
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
 
-      USE Input, ONLY : alpha, readTrajectory, couplingA, couplingExponent, nStates
+      USE Input, ONLY : alpha, readTrajectory, couplingA, couplingExponent
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: doTiming
@@ -137,7 +138,7 @@ MODULE Data
         CALL ComputeGroundStateEnergy(alpha)
       ENDIF
 
-      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent,nStates)
+      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent)
 
       ! This should only be called when trajectory information is available
       IF (readTrajectory) CALL ComputeGeometricRC()
@@ -160,13 +161,12 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeOffDiagonals(RC,couplingA,couplingExponent,nStates)
+    SUBROUTINE ComputeOffDiagonals(RC,couplingA,couplingExponent)
 
       ! #DES: Compute the off-diagonals for the EVB Hamiltonian so the GS can be evaluated
-
+      USE Input, ONLY : nStates
       IMPLICIT NONE
       REAL(8), INTENT(IN) :: RC(:,:), couplingA(:,:), couplingExponent(:,:)
-      INTEGER, INTENT(IN) :: nStates
       INTEGER :: step, timestep, i, j
 
       OffDiagonals = 0.0d0
