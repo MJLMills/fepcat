@@ -323,7 +323,7 @@ MODULE Analysis
         G_FEP(fepstep) = SUM(dG_FEP(1:fepstep-1))
       ENDDO
 
-      CALL FepUs(mappingEnergies(:,:,:,1),groundStateEnergy,G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG)
+      CALL FepUs(mappingEnergies(:,:,:,1),groundStateEnergy,G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG,minPop=minPop)
 
       DO bin = 1, N**SIZE(geomRC,1)
         DO dim = 1, SIZE(geomRC,1)
