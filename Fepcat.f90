@@ -24,7 +24,7 @@ PROGRAM Fepcat
       USE Data,     ONLY : mappingEnergies, lambda !, energyGap, groundStateEnergy
       USE Analysis, ONLY : AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, FepBreakdown
       USE FileIO,   ONLY : OpenFile, CloseFile
-      USE FreeEnergy, ONLY : EVBParameters
+!      USE FreeEnergy, ONLY : EVBParameters
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21
