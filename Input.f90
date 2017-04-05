@@ -35,7 +35,7 @@ MODULE Input
   ! The trajectory array holds all the Cartesian coordinates of the set of FEP simulations - Single Precision cos of the dcd format.
   REAL(4), ALLOCATABLE :: trajectory(:,:,:,:)
   ! #DES: These arrays hold the EVB parameters
-  REAL(8), ALLOCATABLE :: alpha(:), couplingConstant(:,:), couplingExponent(:,:)
+  REAL(8), ALLOCATABLE :: alpha(:), couplingConstant(:,:), couplingGaussExpFactor(:,:)
   REAL(8) :: beta
   LOGICAL :: targetsPresent = .FALSE.
 
@@ -66,7 +66,7 @@ MODULE Input
 
       ALLOCATE(alpha(nStates));                                           alpha = 0.0d0
       ALLOCATE(couplingConstant(nStates,nStates));                               couplingConstant = 0.0d0
-      ALLOCATE(couplingExponent(nStates,nStates));                        couplingExponent = 0.0d0
+      ALLOCATE(couplingGaussExpFactor(nStates,nStates));                        couplingGaussExpFactor = 0.0d0
 
     END SUBROUTINE AllocateInputArrays
 
@@ -82,7 +82,7 @@ MODULE Input
       IF (ALLOCATED(coeffs))           DEALLOCATE(coeffs)
       IF (ALLOCATED(alpha))            DEALLOCATE(alpha)
       IF (ALLOCATED(couplingConstant))        DEALLOCATE(couplingConstant)
-      IF (ALLOCATED(couplingExponent)) DEALLOCATE(couplingExponent)
+      IF (ALLOCATED(couplingGaussExpFactor)) DEALLOCATE(couplingGaussExpFactor)
       IF (ALLOCATED(skip))             DEALLOCATE(skip)
       IF (ALLOCATED(nTimesteps))       DEALLOCATE(nTimesteps)
       IF (ALLOCATED(mask))             DEALLOCATE(mask)
@@ -267,7 +267,7 @@ MODULE Input
 
         DO i = 1, nStates
           DO j = i+1, nstates
-            READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingExponent(i,j)
+            READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingGaussExpFactor(i,j)
           ENDDO
         ENDDO
 
@@ -312,7 +312,7 @@ MODULE Input
       WRITE(logUnit,'(A)') "i   j   A   mu"
       DO i = 1, nStates
         DO j = i+1, nStates
-          WRITE(logUnit,'(2I4,2F7.3)') i, j, couplingConstant(i,j), couplingExponent(i,j)
+          WRITE(logUnit,'(2I4,2F7.3)') i, j, couplingConstant(i,j), couplingGaussExpFactor(i,j)
         ENDDO
       ENDDO
       WRITE(logUnit,*)
