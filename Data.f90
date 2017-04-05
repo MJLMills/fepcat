@@ -111,7 +111,7 @@ MODULE Data
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
 
-      USE Input, ONLY : alpha, readTrajectory, couplingConstant, couplingGaussExpFactor
+      USE Input, ONLY : alpha, readTrajectory, couplingConstant, couplingGaussExpFactor, couplingExpExpFactor
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: doTiming
@@ -138,7 +138,7 @@ MODULE Data
         CALL ComputeGroundStateEnergy(alpha)
       ENDIF
 
-      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingGaussExpFactor)
+      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
 
       ! This should only be called when trajectory information is available
       IF (readTrajectory) CALL ComputeGeometricRC()
@@ -161,20 +161,24 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeOffDiagonals(RC,couplingConstant,couplingGaussExpFactor)
+    SUBROUTINE ComputeOffDiagonals(RC,couplingConstant,expExpFactor,gaussExpFactor)
 
       ! #DES: Compute the off-diagonals for the EVB Hamiltonian so the GS can be evaluated
       USE Input, ONLY : nStates
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: RC(:,:), couplingConstant(:,:), couplingGaussExpFactor(:,:)
+      REAL(8), INTENT(IN) :: RC(:,:), couplingConstant(:,:)
+      REAL(8), INTENT(IN) :: expExpFactor(:,:), gaussExpFactor(:,:)
       INTEGER :: step, timestep, i, j
+      REAL(8) :: expTerm, gaussTerm !convenient intermediate quantities
 
       OffDiagonals = 0.0d0
       DO step = 1, SIZE(energyGap,1)
         DO timestep = 1, SIZE(energyGap,2)
           DO i = 1, nStates
             DO j = i+1, nStates
-              OffDiagonals(timestep,step,i,j) = couplingConstant(i,j) * EXP(-1.0*couplingGaussExpFactor(i,j)*RC(step,timestep)*RC(step,timestep))
+              expTerm   = expExpFactor(i,j)   * RC(step,timestep)
+              gaussTerm = gaussExpFactor(i,j) * RC(step,timestep) * RC(step,timestep)
+              OffDiagonals(timestep,step,i,j) = couplingConstant(i,j) * EXP( -1.0 * (expTerm + gaussTerm))
               OffDiagonals(timestep,step,j,i) = OffDiagonals(timestep,step,i,j) ! EVB Hamiltonian must be symmetric
             ENDDO
           ENDDO
