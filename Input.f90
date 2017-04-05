@@ -522,6 +522,7 @@ MODULE Input
       CALL ReadDCD(fileNames(step),trajectory(step,:,:,:))
     ENDDO
 
+    WRITE(logUnit,*)
     WRITE(logUnit,'(A)') "Finished Reading Simulation Trajectory Data"
     WRITE(logUnit,*)
 
