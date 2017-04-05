@@ -5,7 +5,7 @@ MODULE FileIO
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: OpenFile, CloseFile, fileLengths
+  PUBLIC :: OpenFile, CloseFile, fileLengths, fileLength
 
 CONTAINS
 
@@ -38,6 +38,7 @@ CONTAINS
     OPEN(UNIT=unit,FILE=trim(adjustl(fileName)),IOSTAT=ios,ACTION=trim(adjustl(action)))
     IF (ios /= 0) THEN
       WRITE(*,*) "ERROR: COULD NOT OPEN ", trim(adjustl(fileName)), " FOR ", trim(adjustl(action)), " ON UNIT ", unit
+      IF (PRESENT(success)) success = .FALSE.
     ENDIF
 
   END SUBROUTINE OpenFile

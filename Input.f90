@@ -102,7 +102,7 @@ MODULE Input
       IMPLICIT NONE
 
       CALL ProcessNamelist(logUnit)
-      CALL DefineQTypes()
+      CALL ReadEnergyTypes(logUnit)
       CALL ReadSimulationLengths()
       CALL WriteSimulationLengths(logUnit)
       CALL AllocateInputArrays()
@@ -580,7 +580,49 @@ MODULE Input
 
 !*
 
-  !This is hard-coded for Q, and should be made flexible
+  SUBROUTINE ReadEnergyTypes(logUnit)
+
+    USE FileIO, ONLY : OpenFile, CloseFile, FileLength
+    IMPLICIT NONE
+    INTEGER, INTENT(IN) :: logUnit
+    INTEGER, PARAMETER :: eneUnit = 22
+    LOGICAL :: fileExists = .FALSE.
+    INTEGER :: line
+
+    WRITE(logUnit,'(A)') "* Determine Energy Types *"; WRITE(logUnit,*)
+    CALL OpenFile(eneUnit,"EnergyNames.dat","read",success=fileExists)
+
+    IF (fileExists .EQV. .TRUE.) THEN
+
+      WRITE(logUnit,'(A)') "Reading energy names from EnergyNames.dat"
+      ! This is a fudge to get around the way FileLength is written - add a 2nd version that just takes a unit #, counts, then rewinds
+      CALL CloseFile(eneUnit)
+      nEnergyTypes = FileLength("EnergyNames.dat")
+      CALL OpenFile(eneUnit,"EnergyNames.dat","read",success=fileExists)
+
+      ALLOCATE(energyNames(nEnergyTypes))
+      DO line = 1, nEnergyTypes
+        READ(eneUnit,'(A)') EnergyNames(line)
+        IF (TRIM(ADJUSTL(energyNames(line))) == "") STOP "Error: Remove blank spaces in EnergyNames.dat"
+      ENDDO
+
+    ELSE
+
+      WRITE(logUnit,'(A)') "No file EnergyNames.dat - using Q Defaults"
+      ! No file so assume Q types
+      CALL DefineQTypes()
+
+    ENDIF
+
+    WRITE(logUnit,'(A,1X,I4)') "Number of Types: ", nEnergyTypes
+    DO line = 1, nEnergyTypes
+      WRITE(logUnit,'(A)') trim(adjustl(energyNames(line)))
+    ENDDO
+    WRITE(logUnit,*)
+
+  END SUBROUTINE ReadEnergyTypes
+!*
+
   SUBROUTINE DefineQTypes
 
     ! #DES: Defines the energy types as found in Q output files for convenience
