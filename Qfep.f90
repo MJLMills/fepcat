@@ -164,9 +164,11 @@ PROGRAM Qfep
 
      IMPLICIT NONE
      INTEGER :: bin, step, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
-     REAL(8) :: binMidpoints(Nbins), dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
+     REAL(8) :: binMidpoints(Nbins)
+     REAL(8) :: dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
      REAL(8) :: binG(Nbins)
      REAL(8) :: G_FEP(SIZE(energyGap,1))
+     INTEGER :: count
 
      WRITE(outUnit,'(A20,F7.2)') "# Min energy-gap is:", MINVAL(energyGap(:,:))
      WRITE(outUnit,'(A20,F7.2)') "# Max energy-gap is:", MAXVAL(energyGap(:,:))
@@ -181,13 +183,14 @@ PROGRAM Qfep
      ! energyGap is the reaction coordinate, nBins is num histogram bins, binPop is histogram values,
      ! indices is which bin each point is in, binMidpoints is x values
 
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binG)
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binG)
-     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy,        G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binG,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binG,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG,minPop=minPop)
 
      DO step = 1, SIZE(energyGap,1)
        DO bin = 1, Nbins
-         IF (binPopulations(bin,step) >= minPop) WRITE(outUnit,'(2X,F9.6,I5,2X,4F9.2,2X,I5)') lambda(step), bin, binMidpoints(bin), dGa(bin,step),dGb(bin,step), dGg(bin,step), binPopulations(bin,step)
+         IF (binPopulations(bin,step) >= minPop) WRITE(outUnit,'(2X,F9.6,I5,2X,4F9.2,2X,I5)') lambda(step), bin, binMidpoints(bin), &
+&                                                                                             dGa(bin,step),dGb(bin,step), dGg(bin,step), binPopulations(bin,step)
        ENDDO
      ENDDO
 
@@ -196,7 +199,8 @@ PROGRAM Qfep
      WRITE(outUnit,'(A63)') "# bin  energy gap  <dGg> <dGg norm> pts  <c1**2> <c2**2> <r_xy>"
 
      DO bin = 1, nBins
-       IF (SUM(binPopulations(bin,:)) > 0) WRITE(outUnit,'(I4,1X,3F9.2,2X,I5)') bin, binMidpoints(bin), binG(bin), binG(bin)-MINVAL(binG), SUM(binPopulations(bin,:))
+       count = SUM(binPopulations(bin,:), MASK = binPopulations(bin,:) >= minPop)
+       IF (SUM(binPopulations(bin,:)) > minPop) WRITE(outUnit,'(I4,1X,3F9.2,2X,I5)') bin, binMidpoints(bin), binG(bin), binG(bin)-MINVAL(binG), count
      ENDDO
 
     ENDSUBROUTINE AnalyzeFepUs_Q

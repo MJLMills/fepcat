@@ -37,7 +37,7 @@ MODULE FreeEnergy
       ! Currently forced to get the 2D and 1D FEP/US results, but only want the 1D (binG)
 
       CALL Histogram(energyGap,mask,Nbins,binPopulations,binIndices,binMidpoints)
-      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy,profile,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG)
+      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy,profile,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG,minPop=minPop)
       binMask(:) = .TRUE.
       DO bin = 1, Nbins
         IF (SUM(binPopulations(bin,:)) < minPop) binMask(bin) = .FALSE.
@@ -95,7 +95,7 @@ MODULE FreeEnergy
 
 !*
 
-    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2D,PMF1D)
+    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2D,PMF1D,minPop)
 
       ! #DES: Perform a FEP/US calculation of the potential of mean force (PMF) using the supplied
       !       histogram, reference free energy values and target/mapping energies.
@@ -105,8 +105,7 @@ MODULE FreeEnergy
       REAL(8), INTENT(IN)  :: mappingEnergies(:,:,:), targetEnergy(:,:)
       REAL(8), INTENT(IN)  :: G_FEP(:)
       INTEGER, INTENT(IN)  :: binPopulations(:,:)
-      INTEGER, INTENT(IN)  :: binIndices(:,:)
-
+      INTEGER, INTENT(IN)  :: binIndices(:,:), minPop
       REAL(8), INTENT(OUT) :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP)), PMF1D(SIZE(binPopulations,1))
 
       INTEGER :: Nbins, NfepSteps, NtimeSteps, bin, fepstep, timestep, popSum
@@ -115,10 +114,11 @@ MODULE FreeEnergy
       NfepSteps  = SIZE(mappingEnergies,2)
       NtimeSteps = SIZE(mappingEnergies,1)
 
+
       ! Compute the free energy for the target potential for each populated bin
       ! This generates the Q-style 2D PMF where information from each fepstep is retained separately.
 
-      PMF2D(:,:) = 0.0d0
+      PMF2D = 0.0d0
       DO bin = 1, Nbins               ! for each range of the reaction coordinate
         DO fepstep = 1, NfepSteps     ! check each FEP simulation
           DO timestep = 1, NtimeSteps ! if this timestep of this FEP step is in the bin
@@ -144,14 +144,17 @@ MODULE FreeEnergy
       PMF1D(:) = 0.0d0
       DO bin = 1, SIZE(binPopulations,1)
         DO fepstep = 1, SIZE(binPopulations,2)
-          IF (binPopulations(bin,fepstep) > 0) THEN
+          IF (binPopulations(bin,fepstep) >= minPop) THEN
             PMF1D(bin) = PMF1D(bin) + (PMF2D(bin,fepstep) * binPopulations(bin,fepstep))
           ENDIF
         ENDDO
       ENDDO
 
       DO bin = 1, SIZE(binPopulations,1)
-        popSum = SUM(binPopulations(bin,:))
+        popSum = 0
+        DO fepstep = 1, SIZE(binPopulations,2)
+          IF (binPopulations(bin,fepstep) >= minPop) popSum = popsum + binPopulations(bin,fepstep)
+        ENDDO
         IF (popSum > 0) PMF1D(bin) = PMF1D(bin) / popSum
       ENDDO
 
@@ -301,7 +304,7 @@ MODULE FreeEnergy
       INTEGER, INTENT(OUT) :: binIndices(:,:)
       REAL(8), INTENT(OUT) :: binMidpoints(:)
 
-      LOGICAL, PARAMETER :: DEBUG = .TRUE.
+      LOGICAL, PARAMETER :: DEBUG = .FALSE.
       REAL(8) :: min, max, binWidth, binEdges(N+1)
       INTEGER :: bin, fepstep, timestep
 
