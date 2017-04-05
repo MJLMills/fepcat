@@ -99,8 +99,8 @@ MODULE Data
 
 !      CALL ComputeMappingEnergies(alpha)
 !      CALL ComputeEnergyGap(alpha)
-!      CALL ComputeGroundStateEnergy(alpha)
 !      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingGaussExpFactor)
+!      CALL ComputeGroundStateEnergy(alpha)
 
 !    END SUBROUTINE RecomputeDependentData
 
@@ -131,14 +131,13 @@ MODULE Data
 
       CALL ComputeLambdas()
       CALL ComputeEnergyGap(alpha)
+      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
 
       IF (doTiming) THEN
         CALL ComputeGroundStateEnergy(alpha,time(3))
       ELSE
         CALL ComputeGroundStateEnergy(alpha)
       ENDIF
-
-      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
 
       ! This should only be called when trajectory information is available
       IF (readTrajectory) CALL ComputeGeometricRC()
@@ -179,6 +178,7 @@ MODULE Data
               expTerm   = expExpFactor(i,j)   * RC(step,timestep)
               gaussTerm = gaussExpFactor(i,j) * RC(step,timestep) * RC(step,timestep)
               OffDiagonals(timestep,step,i,j) = couplingConstant(i,j) * EXP( -1.0 * (expTerm + gaussTerm))
+              WRITE(*,*) OffDiagonals(timestep,step,i,j)
               OffDiagonals(timestep,step,j,i) = OffDiagonals(timestep,step,i,j) ! EVB Hamiltonian must be symmetric
             ENDDO
           ENDDO
