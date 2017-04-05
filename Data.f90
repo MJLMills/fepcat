@@ -9,7 +9,7 @@ MODULE Data
 
   REAL(8), ALLOCATABLE :: lambda(:)
   REAL(8), ALLOCATABLE :: energyGap(:,:), groundStateEnergy(:,:), geomRC(:,:,:)
-  REAL(8), ALLOCATABLE :: mappingEnergies(:,:,:,:)
+  REAL(8), ALLOCATABLE :: mappingEnergies(:,:,:,:), offDiagonals(:,:,:,:)
 
   CONTAINS
 
@@ -33,6 +33,7 @@ MODULE Data
       ALLOCATE(geomRC(dRC,nFepSteps,maxTimesteps));                             geomRC = 0.0d0
       ALLOCATE(groundStateEnergy(maxTimesteps,nFepSteps));                      groundStateEnergy = 0.0d0
       ALLOCATE(mappingEnergies(maxTimesteps,nFepSteps,nFepSteps,nEnergyTypes)); !mappingEnergies = 0.0d0
+      ALLOCATE(offDiagonals(maxTimesteps,nFepSteps,nStates,nStates));           offDiagonals = 0.0d0
 
       IF (PRESENT(time)) THEN
         CALL CPU_TIME(t2)
@@ -54,6 +55,7 @@ MODULE Data
       IF (ALLOCATED(geomRC))            DEALLOCATE(geomRC)
       IF (ALLOCATED(groundStateEnergy)) DEALLOCATE(groundStateEnergy)
       IF (ALLOCATED(mappingEnergies))   DEALLOCATE(mappingEnergies)
+      IF (ALLOCATED(offDiagonals))      DEALLOCATE(OffDiagonals)
 
     END SUBROUTINE DeallocateDataArrays
 
@@ -87,6 +89,20 @@ MODULE Data
 
     ENDSUBROUTINE ComputeGeometricRC
 
+!* OFF until needed
+!    SUBROUTINE RecomputeDependentData(alpha)
+!
+      ! #DES: Recompute all quantities that depend on the EVB parameters
+!
+!      IMPLICIT NONE
+!      REAL(8), INTENT(IN) :: alpha(:)
+
+!      CALL ComputeMappingEnergies(alpha)
+!      CALL ComputeEnergyGap(alpha)
+!      CALL ComputeGroundStateEnergy(alpha)
+
+!    END SUBROUTINE RecomputeDependentData
+
 !*
 
     SUBROUTINE ComputeDerivedData(logUnit,doTiming)
@@ -94,7 +110,7 @@ MODULE Data
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
 
-      USE Input, ONLY : alpha, readTrajectory
+      USE Input, ONLY : alpha, readTrajectory, couplingA, couplingExponent, nStates
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: doTiming
@@ -106,20 +122,22 @@ MODULE Data
 
       IF (doTiming) THEN 
         CALL AllocateDataArrays(time(1))
-        CALL ComputeMappingEnergies(time(2))
+        CALL ComputeMappingEnergies(alpha,time(2))
       ELSE 
         CALL AllocateDataArrays()
-        CALL ComputeMappingEnergies()
+        CALL ComputeMappingEnergies(alpha)
       ENDIF
 
       CALL ComputeLambdas()
-      CALL ComputeEnergyGap()
+      CALL ComputeEnergyGap(alpha)
 
       IF (doTiming) THEN
         CALL ComputeGroundStateEnergy(alpha,time(3))
       ELSE
         CALL ComputeGroundStateEnergy(alpha)
       ENDIF
+
+      CALL ComputeOffDiagonals(energyGap,couplingA,couplingExponent,nStates)
 
       ! This should only be called when trajectory information is available
       IF (readTrajectory) CALL ComputeGeometricRC()
@@ -142,11 +160,36 @@ MODULE Data
 
 !*
 
+    SUBROUTINE ComputeOffDiagonals(RC,couplingA,couplingExponent,nStates)
+
+      ! #DES: Compute the off-diagonals for the EVB Hamiltonian so the GS can be evaluated
+
+      IMPLICIT NONE
+      REAL(8), INTENT(IN) :: RC(:,:), couplingA(:,:), couplingExponent(:,:)
+      INTEGER, INTENT(IN) :: nStates
+      INTEGER :: step, timestep, i, j
+
+      OffDiagonals = 0.0d0
+      DO step = 1, SIZE(energyGap,1)
+        DO timestep = 1, SIZE(energyGap,2)
+          DO i = 1, nStates
+            DO j = i+1, nStates
+              OffDiagonals(timestep,step,i,j) = couplingA(i,j) * EXP(-1.0*couplingExponent(i,j)*RC(step,timestep)*RC(step,timestep))
+              OffDiagonals(timestep,step,j,i) = OffDiagonals(timestep,step,i,j) ! EVB Hamiltonian must be symmetric
+            ENDDO
+          ENDDO
+        ENDDO
+      ENDDO
+
+    END SUBROUTINE ComputeOffDiagonals
+
+!*
+
     SUBROUTINE ComputeGroundStateEnergy(alpha,time)
 
       ! #DES: Calculate the ground state energy for each conformation
 
-      USE Input, ONLY : stateEnergy, stateA, stateB, nStates, couplingA, couplingExponent
+      USE Input, ONLY : stateEnergy, nStates
       USE Matrix, ONLY : Eigenvalues2DRealSymmetric, Eigenvalues3DRealSymmetric
 
       IMPLICIT NONE
@@ -168,8 +211,8 @@ MODULE Data
               IF (i == j) THEN
                 H(i,i) = stateEnergy(timestep,step,i,total) + alpha(i)
               ELSE
-                H(i,j) = couplingA(i,j) * EXP(-1.0*couplingExponent(i,j)*energyGap(step,timestep)*energyGap(step,timestep))
-                H(j,i) = H(i,j) !symmetric matrix
+                H(i,j) = OffDiagonals(timestep,step,i,j)
+                H(j,i) = OffDiagonals(timestep,step,j,i)
               ENDIF
             END DO
           ENDDO
@@ -198,26 +241,27 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeMappingEnergies(time)
+    SUBROUTINE ComputeMappingEnergies(alpha,time)
 
       ! #DES: Compute the mapping energies for each pair of states in the system.
 
       USE Input, ONLY : stateEnergy, coeffs, stateA, stateB, nTimesteps
 
       IMPLICIT NONE
+      REAL(8), INTENT(IN) :: alpha(:)
       REAL(8), INTENT(OUT), OPTIONAL :: time
       REAL(8) :: t1, t2
       INTEGER :: dyn_potential, ene_potential, type, timestep
 
       IF (PRESENT(time)) CALL CPU_TIME(t1)
       !This is an optimization candidate - not all of the dyn,ene entries are needed
-            DO type = 1, SIZE(stateEnergy,4)
-      DO dyn_potential = 1, SIZE(stateEnergy,2)
-        DO ene_potential = dyn_potential-1, dyn_potential+1
-          IF (ene_potential < 1 .OR. ene_potential > SIZE(stateEnergy,2)) CYCLE
-          DO timestep = 1, nTimesteps(dyn_potential)
-              mappingEnergies(timestep,ene_potential,dyn_potential,type) = (coeffs(timestep,ene_potential,stateA) * stateEnergy(timestep,dyn_potential,stateA,type)) + &
-  &                                                                        (coeffs(timestep,ene_potential,stateB) * stateEnergy(timestep,dyn_potential,stateB,type))
+      DO type = 1, SIZE(stateEnergy,4)
+        DO dyn_potential = 1, SIZE(stateEnergy,2)
+          DO ene_potential = dyn_potential-1, dyn_potential+1
+            IF (ene_potential < 1 .OR. ene_potential > SIZE(stateEnergy,2)) CYCLE
+            DO timestep = 1, nTimesteps(dyn_potential)
+                mappingEnergies(timestep,ene_potential,dyn_potential,type) = (coeffs(timestep,ene_potential,stateA) * (stateEnergy(timestep,dyn_potential,stateA,type) + alpha(stateA)) ) + &
+  &                                                                          (coeffs(timestep,ene_potential,stateB) * (stateEnergy(timestep,dyn_potential,stateB,type) + alpha(stateB)) )
             ENDDO
           ENDDO
         ENDDO
@@ -232,17 +276,18 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeEnergyGap()
+    SUBROUTINE ComputeEnergyGap(alpha)
 
       ! #DES: Compute the value of the energy gap reaction coordinate for each configuration using the input coefficients
 
       USE Input, ONLY : stateEnergy, stateA, stateB, rcCoeffA, rcCoeffB
 
       IMPLICIT NONE
+      REAL(8), INTENT(IN) :: alpha(:)
       INTEGER :: step
       
       DO step = 1, SIZE(stateEnergy,2)
-        energyGap(step,:) = (rcCoeffA * stateEnergy(:,step,stateA,1)) + (rcCoeffB * stateEnergy(:,step,stateB,1))
+        energyGap(step,:) = (rcCoeffA * (stateEnergy(:,step,stateA,1) + alpha(stateA))) + (rcCoeffB * (stateEnergy(:,step,stateB,1) + alpha(stateB)))
       ENDDO
 
     END SUBROUTINE ComputeEnergyGap

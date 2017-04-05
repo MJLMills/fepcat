@@ -226,7 +226,7 @@ MODULE Input
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: prmUnit = 16
-      CHARACTER(500) :: fileNames(nFepsTeps)
+      CHARACTER(500) :: fileNames(nFepSteps)
       INTEGER :: step
 
       CALL OpenFile(prmUnit,"skip.prm","write")

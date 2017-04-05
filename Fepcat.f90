@@ -1,4 +1,4 @@
- PROGRAM Fepcat
+PROGRAM Fepcat
 
   ! #DES: Program for free energy perturbation (FEP) calculations on molecular dynamics (MD) trajectories.
   ! #DES: For an empirical valence bond (EVB) potential of nStates states, compute the free energy change from stateA to stateB.
