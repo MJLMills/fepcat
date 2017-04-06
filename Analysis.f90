@@ -14,13 +14,22 @@ MODULE Analysis
      USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy
      USE Input,      ONLY : Nbins, minPop, stateA, stateB, stateEnergy, mask, alpha
      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
+     USE FileIO, ONLY : OpenFile, CloseFile
+     USE Output, ONLY : WriteCSV2D
 
      IMPLICIT NONE
+     INTEGER, PARAMETER :: fepUnit = 77
      INTEGER :: bin, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
      REAL(8) :: binMidpoints(Nbins)
      REAL(8) :: dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
      REAL(8) :: binGg(Nbins), binGa(Nbins), binGb(Nbins)
      REAL(8) :: G_FEP(SIZE(energyGap,1))
+     CHARACTER(3) :: head(4)
+     REAL(8) :: output(Nbins,4)
+
+     head(1) = "dE"; head(2) = "Ggs"; head(3) = "Ga"; head(4) = "Gb"
+
+     CALL OpenFile(fepUnit,"fepus-basic.csv","write")
 
      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
 
@@ -30,8 +39,14 @@ MODULE Analysis
      CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binGb,minPop=minPop)
 
      DO bin = 1, nBins
-       WRITE(*,*) binMidpoints(bin), binGg(bin), binGa(bin), binGb(bin)
+       output(bin,1) = binMidpoints(bin)
+       output(bin,2) = binGg(bin)
+       output(bin,3) = binGa(bin)
+       output(bin,4) = binGb(bin)
      ENDDO
+
+     CALL WriteCsv2D(head,output,fepUnit)
+     CALL CloseFile(fepUnit)
 
     END SUBROUTINE BasicFepUS
 
