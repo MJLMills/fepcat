@@ -22,7 +22,7 @@ PROGRAM Fepcat
 
       USE Input,    ONLY : stateEnergy, energyNames, mask, coeffs, skip, stateA, stateB !, targetsPresent, dGTS, dGPS, nBins, minPop
       USE Data,     ONLY : mappingEnergies, lambda !, energyGap, groundStateEnergy
-      USE Analysis, ONLY : AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, FepBreakdown, BasicFepUS
+      USE Analysis, ONLY : AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, FepBreakdown, BasicFepUS, Test2D
       USE FileIO,   ONLY : OpenFile, CloseFile
 
       IMPLICIT NONE
@@ -39,6 +39,8 @@ PROGRAM Fepcat
       CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:))
 
       CALL BasicFepUs()
+
+      CALL Test2D()
 
 !      CALL DetailedFEP(mappingEnergies,mask)
 !      CALL RunLinearResponse()

@@ -76,7 +76,7 @@ MODULE Data
       REAL(8) :: r1, r2
       INTEGER :: step, timestep
 
-      x = 1; y = 2; z = 3
+      x = 1; y = 40; z = 59
 
       DO step = 1, SIZE(trajectory,1)
         DO timestep = 1, SIZE(trajectory,4)
@@ -140,6 +140,7 @@ MODULE Data
       ENDIF
 
       ! This should only be called when trajectory information is available
+      ! Needs to have an input file for defining coordinates too
       IF (readTrajectory) CALL ComputeGeometricRC()
       
       IF (doTiming) THEN
@@ -154,7 +155,6 @@ MODULE Data
       ENDIF
 
       WRITE(logUnit,'(A)') "Finished Computing Data Derived from Input"; WRITE(logUnit,*)
-
 
     END SUBROUTINE ComputeDerivedData
 
