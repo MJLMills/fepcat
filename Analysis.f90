@@ -5,9 +5,35 @@ MODULE Analysis
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep
+  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, BasicFepUS
 
   CONTAINS
+
+    SUBROUTINE BasicFepUS
+
+     USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy
+     USE Input,      ONLY : Nbins, minPop, stateA, stateB, stateEnergy, mask, alpha
+     USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
+
+     IMPLICIT NONE
+     INTEGER :: bin, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
+     REAL(8) :: binMidpoints(Nbins)
+     REAL(8) :: dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
+     REAL(8) :: binGg(Nbins), binGa(Nbins), binGb(Nbins)
+     REAL(8) :: G_FEP(SIZE(energyGap,1))
+
+     CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
+
+     CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1)+alpha(stateA),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binGg,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1)+alpha(stateB),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binGa,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binGb,minPop=minPop)
+
+     DO bin = 1, nBins
+       WRITE(*,*) binMidpoints(bin), binGg(bin), binGa(bin), binGb(bin)
+     ENDDO
+
+    END SUBROUTINE BasicFepUS
 
 !*
 
