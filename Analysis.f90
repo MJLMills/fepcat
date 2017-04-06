@@ -322,7 +322,7 @@ MODULE Analysis
 
     !geomRC is the reaction coordinate to be used. It is currently hard-coded for evaluation
 
-    SUBROUTINE Test2D
+    SUBROUTINE Test2D()
 
       ! This was a testing routine for the 2D plot, using the energy gap as both r1 and r2
       ! Should be cannibalized to produce the actual FEP/US driver that calls the correct histogram routine for D.
@@ -330,25 +330,26 @@ MODULE Analysis
       USE Data, ONLY : geomRC, mappingEnergies, groundStateEnergy
       USE Input, ONLY : mask, minPop
       USE FreeEnergy, ONLY : Histogram2D, ComputeFEPIncrements, FepUs
+      USE FileIO, ONLY : OpenFile, CloseFile
       USE Output, ONLY : WriteCsv2D
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: N = 25
+      INTEGER, PARAMETER :: N = 50, unit = 53
 
-      ! It would be nice to hide these in a Histogram object
       INTEGER :: binIndices(SIZE(geomRC,2),SIZE(geomRC,3))
       INTEGER :: binPopulations(N**SIZE(geomRC,1),SIZE(geomRC,2))
       REAL(8) :: binCoordinates(N**SIZE(geomRC,1),SIZE(geomRC,1))
-      ! These should be hidden also so that just the profile can be obtained via a function in the call to FepUs
+
       REAL(8) :: G_FEP(SIZE(geomRC,2)), dG_FEP(SIZE(geomRC,2)-1)
-      ! These are to be printed to the output
       REAL(8) :: binG(N**SIZE(geomRC,1)), dGg(N**SIZE(geomRC,1),SIZE(geomRC,2))
 
       REAL(8) :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1)  ! one row for each bin to be printed, one column for each coordinate and one for the free energy
       CHARACTER(2) :: head(SIZE(geomRC,1)+1) ! heading for each coord, then the free energy
       INTEGER :: bin, fepstep, dim
       CHARACTER(1) :: dimString
+
+      CALL OpenFile(unit,"fepus2D.csv","write")
 
       DO dim = 1, SIZE(geomRC,1)
         WRITE(dimString,'(I1)') dim
@@ -358,6 +359,7 @@ MODULE Analysis
 
       CALL Histogram2D(geomRC,mask,N,binIndices,binPopulations,binCoordinates)
 
+      !This is the same as the 1D case - replace with ComputeFEPProfile
       CALL ComputeFEPIncrements(1,SIZE(geomRC,2),mappingEnergies(:,:,:,1),mask(:,:),profile=dG_FEP)
       G_FEP(:) = 0.0d0
       DO fepstep = 2, SIZE(geomRC,2)
@@ -373,7 +375,8 @@ MODULE Analysis
         output(bin,SIZE(geomRC,1)+1) = binG(bin)
       ENDDO
 
-      CALL WriteCsv2D(head,output,6)
+      CALL WriteCsv2D(head,output,unit)
+      CALL CloseFile(unit)
 
     END SUBROUTINE Test2D
 !*
