@@ -335,7 +335,7 @@ MODULE Analysis
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: N = 50, unit = 53
+      INTEGER, PARAMETER :: N = 500, unit = 53
 
       INTEGER :: binIndices(SIZE(geomRC,2),SIZE(geomRC,3))
       INTEGER :: binPopulations(N**SIZE(geomRC,1),SIZE(geomRC,2))
@@ -345,7 +345,7 @@ MODULE Analysis
       REAL(8) :: binG(N**SIZE(geomRC,1)), dGg(N**SIZE(geomRC,1),SIZE(geomRC,2))
 
       REAL(8) :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1)  ! one row for each bin to be printed, one column for each coordinate and one for the free energy
-      CHARACTER(2) :: head(SIZE(geomRC,1)+1) ! heading for each coord, then the free energy
+      CHARACTER(4) :: head(SIZE(geomRC,1)+1) ! heading for each coord, then the free energy
       INTEGER :: bin, fepstep, dim
       CHARACTER(1) :: dimString
 
@@ -353,9 +353,9 @@ MODULE Analysis
 
       DO dim = 1, SIZE(geomRC,1)
         WRITE(dimString,'(I1)') dim
-        head(dim) = "r"//dimString
+        head(dim) = "R"//dimString
       ENDDO
-      head(SIZE(geomRC,1)+1) = "dg"
+      head(SIZE(geomRC,1)+1) = "Esol" !change later - hack for contour script
 
       CALL Histogram2D(geomRC,mask,N,binIndices,binPopulations,binCoordinates)
 
