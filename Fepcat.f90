@@ -20,30 +20,24 @@ PROGRAM Fepcat
 
     SUBROUTINE FullAnalysis()
 
-      USE Input,    ONLY : stateEnergy, energyNames, mask, coeffs, skip, stateA, stateB !, targetsPresent, dGTS, dGPS, nBins, minPop
-      USE Data,     ONLY : mappingEnergies, lambda !, energyGap, groundStateEnergy
-      USE Analysis, ONLY : AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, FepBreakdown, BasicFepUS, Test2D
+      USE Input,    ONLY : energyNames, mask, stateEnergy, coeffs, skip, stateA, stateB
+      USE Data,     ONLY : mappingEnergies, lambda
+      USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState
       USE FileIO,   ONLY : OpenFile, CloseFile
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21
 
-      CALL OpenFile(meanUnit,"MeanEnergy.csv",'write')
+      CALL OpenFile(meanUnit,"mean-energy.csv",'write')
       CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,meanUnit)
       CALL CloseFile(meanUnit)
 
-      CALL OpenFile(convUnit,"Convergence.csv",'write')
+      CALL OpenFile(convUnit,"convergence.csv",'write')
       CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),convUnit)
       CALL CloseFile(convUnit)
 
       CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:))
-
-      CALL BasicFepUs()
-
-      CALL Test2D()
-
-!      CALL DetailedFEP(mappingEnergies,mask)
-!      CALL RunLinearResponse()
+      CALL FepUsGroundState()
 
     END SUBROUTINE FullAnalysis
 

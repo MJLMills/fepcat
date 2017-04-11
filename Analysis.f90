@@ -5,50 +5,54 @@ MODULE Analysis
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, BasicFepUS
+  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState
 
   CONTAINS
 
-    SUBROUTINE BasicFepUS
+!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1)+alpha(stateA),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binGa,minPop=minPop)
+!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1)+alpha(stateB),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binGb,minPop=minPop)
+! REAL(8) :: binGa(Nbins), binGb(Nbins)
+! REAL(8) :: dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
+!; head(3) = "Ga"; head(4) = "Gb"
+!       output(bin,3) = binGa(bin)
+!       output(bin,4) = binGb(bin)
+
+    SUBROUTINE FepUsGroundState
 
      USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy
-     USE Input,      ONLY : Nbins, minPop, stateA, stateB, stateEnergy, mask, alpha
+     USE Input,      ONLY : Nbins, minPop, stateA, stateB, mask
      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
-     USE FileIO, ONLY : OpenFile, CloseFile
-     USE Output, ONLY : WriteCSV2D
+     USE FileIO,     ONLY : OpenFile, CloseFile
+     USE Output,     ONLY : WriteCSV2D
 
      IMPLICIT NONE
      INTEGER, PARAMETER :: fepUnit = 77
      INTEGER :: bin, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
      REAL(8) :: binMidpoints(Nbins)
-     REAL(8) :: dGg(Nbins,SIZE(energyGap,1)), dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
-     REAL(8) :: binGg(Nbins), binGa(Nbins), binGb(Nbins)
+     REAL(8) :: dGg(Nbins,SIZE(energyGap,1))  
+     REAL(8) :: binGg(Nbins)  
      REAL(8) :: G_FEP(SIZE(energyGap,1))
-     CHARACTER(3) :: head(4)
-     REAL(8) :: output(Nbins,4)
+     CHARACTER(3) :: head(2)
+     REAL(8) :: output(Nbins,2)
 
-     head(1) = "dE"; head(2) = "Ggs"; head(3) = "Ga"; head(4) = "Gb"
+     head(1) = "dE"; head(2) = "dG"  
 
-     CALL OpenFile(fepUnit,"fepus-basic.csv","write")
+     CALL OpenFile(fepUnit,"fepus-groundstate.csv","write")
 
      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
 
      CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1)+alpha(stateA),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binGg,minPop=minPop)
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1)+alpha(stateB),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binGa,minPop=minPop)
-     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binGb,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binGg,minPop=minPop)
 
      DO bin = 1, nBins
        output(bin,1) = binMidpoints(bin)
        output(bin,2) = binGg(bin)
-       output(bin,3) = binGa(bin)
-       output(bin,4) = binGb(bin)
      ENDDO
 
      CALL WriteCsv2D(head,output,fepUnit)
      CALL CloseFile(fepUnit)
 
-    END SUBROUTINE BasicFepUS
+    END SUBROUTINE FepUSGroundState
 
 !*
 
