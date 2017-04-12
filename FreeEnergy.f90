@@ -1,6 +1,7 @@
 MODULE FreeEnergy
 
   ! #DES: Routines to perform free energy calculations using the input and derived data.
+  !       These routines are forbidden to USE data from other modules; they strictly receive/return data.
 
   USE Input, ONLY : beta
   IMPLICIT NONE
@@ -12,21 +13,24 @@ MODULE FreeEnergy
 
 !*
 
-    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2D,PMF1D,minPop)
+    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2D,PMF1D,minPop,useBin)
 
       ! #DES: Perform a FEP/US calculation of the potential of mean force (PMF) using the supplied
       !       histogram, reference free energy values and target/mapping energies.
       ! #TODO: mappingEnergies does not need to be 3D; should contain diagonals of the full mappingEnergies array
 
       IMPLICIT NONE
-      REAL(8), INTENT(IN)  :: mappingEnergies(:,:,:), targetEnergy(:,:)
-      REAL(8), INTENT(IN)  :: G_FEP(:)
-      INTEGER, INTENT(IN)  :: binPopulations(:,:)
-      INTEGER, INTENT(IN)  :: binIndices(:,:), minPop
-      REAL(8), INTENT(OUT) :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP)), PMF1D(SIZE(binPopulations,1))
+      REAL(8), INTENT(IN)            :: mappingEnergies(:,:,:), targetEnergy(:,:)
+      REAL(8), INTENT(IN)            :: G_FEP(:)
+      INTEGER, INTENT(IN)            :: binPopulations(:,:), binIndices(:,:)
+      INTEGER, INTENT(IN)            :: minPop
+      REAL(8), INTENT(OUT), OPTIONAL :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP))
+      REAL(8), INTENT(OUT)           :: PMF1D(SIZE(binPopulations,1))
+      LOGICAL, INTENT(OUT), OPTIONAL :: useBin(SIZE(binPopulations,1))
+      INTEGER                        :: Nbins, NfepSteps, NtimeSteps   ! Totals
+      INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
 
-      INTEGER :: Nbins, NfepSteps, NtimeSteps, bin, fepstep, timestep, popSum
-
+      useBin(:)  = .FALSE.
       Nbins      = SIZE(binPopulations,1)
       NfepSteps  = SIZE(mappingEnergies,2)
       NtimeSteps = SIZE(mappingEnergies,1)
@@ -34,7 +38,7 @@ MODULE FreeEnergy
       ! Compute the free energy for the target potential for each populated bin
       ! This generates the Q-style 2D PMF where information from each fepstep is retained separately.
 
-      PMF2D = 0.0d0
+      PMF2D(:,:) = 0.0d0
       DO bin = 1, Nbins               ! for each range of the reaction coordinate
         DO fepstep = 1, NfepSteps     ! check each FEP simulation
           DO timestep = 1, NtimeSteps ! if this timestep of this FEP step is in the bin
@@ -71,7 +75,10 @@ MODULE FreeEnergy
         DO fepstep = 1, SIZE(binPopulations,2)
           IF (binPopulations(bin,fepstep) >= minPop) popSum = popsum + binPopulations(bin,fepstep)
         ENDDO
-        IF (popSum > 0) PMF1D(bin) = PMF1D(bin) / popSum
+        IF (popSum > 0) THEN
+          PMF1D(bin) = PMF1D(bin) / popSum
+          useBin(bin) = .TRUE.
+        ENDIF
       ENDDO
 
     ENDSUBROUTINE FepUs

@@ -21,11 +21,11 @@ MODULE Analysis
 
      IMPLICIT NONE
      INTEGER, PARAMETER :: fepUnit = 77
-     INTEGER :: bin, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
+     INTEGER :: bin, binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2)), count
      REAL(8) :: binMidpoints(Nbins)
-     REAL(8) :: dGg(Nbins,SIZE(energyGap,1))  
      REAL(8) :: binGg(Nbins)  
      REAL(8) :: G_FEP(SIZE(energyGap,1))
+     LOGICAL :: printBin(Nbins)
      CHARACTER(3) :: head(2)
      REAL(8) :: output(Nbins,2)
 
@@ -36,14 +36,18 @@ MODULE Analysis
      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
 
      CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
-     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binGg,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
 
+     count = 0
      DO bin = 1, nBins
-       output(bin,1) = binMidpoints(bin)
-       output(bin,2) = binGg(bin)
+       IF (printBin(bin)) THEN
+         count = count + 1
+         output(count,1) = binMidpoints(bin)
+         output(count,2) = binGg(bin)
+      ENDIF
      ENDDO
 
-     CALL WriteCsv2D(head,output,fepUnit)
+     CALL WriteCsv2D(head,output(1:count,:),fepUnit)
      CALL CloseFile(fepUnit)
 
     END SUBROUTINE FepUSGroundState
