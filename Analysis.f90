@@ -283,7 +283,7 @@ MODULE Analysis
       IMPLICIT NONE
       INTEGER :: nFepSteps, nStates, nColumns, nRows
       INTEGER :: name, fepstep, state, type, row
-      CHARACTER(11), ALLOCATABLE :: head(:)
+      CHARACTER(20), ALLOCATABLE :: head(:)
       REAL(8), ALLOCATABLE :: out(:,:)
 
       nFepSteps = SIZE(stateEnergy,2)

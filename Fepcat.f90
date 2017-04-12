@@ -37,6 +37,7 @@ PROGRAM Fepcat
       CALL CloseFile(convUnit)
 
       CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:))
+
       CALL FepUsGroundState()
 
     END SUBROUTINE FullAnalysis

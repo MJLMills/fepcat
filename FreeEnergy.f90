@@ -31,7 +31,6 @@ MODULE FreeEnergy
       NfepSteps  = SIZE(mappingEnergies,2)
       NtimeSteps = SIZE(mappingEnergies,1)
 
-
       ! Compute the free energy for the target potential for each populated bin
       ! This generates the Q-style 2D PMF where information from each fepstep is retained separately.
 

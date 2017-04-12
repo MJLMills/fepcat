@@ -82,8 +82,8 @@ MODULE Data
         DO timestep = 1, SIZE(trajectory,4)
           r1 = distance(trajectory(step,:,x,timestep),trajectory(step,:,y,timestep)) !1,2
           r2 = distance(trajectory(step,:,x,timestep),trajectory(step,:,z,timestep)) !1,3
-          geomRC(1,step,timestep) = r1
-          geomRC(2,step,timestep) = r2
+          geomRC(1,step,timestep) = r2
+          geomRC(2,step,timestep) = r1
         ENDDO
       ENDDO
 

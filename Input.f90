@@ -48,7 +48,7 @@ MODULE Input
   INTEGER :: maxTimesteps               ! Length of the longest FEP simulation (largest of nTimesteps(:)); used to allocate arrays
 
   ! These will eventually have to be inputs unless a logical switch for Q data is TRUE
-  CHARACTER(11), ALLOCATABLE :: energyNames(:)
+  CHARACTER(20), ALLOCATABLE :: energyNames(:)
   INTEGER :: nEnergyTypes
 
   CONTAINS
@@ -560,6 +560,7 @@ MODULE Input
       ! This would be the place to allocate space for this fep simulation's energy data
       DO timestep = 1, nTimesteps(step)
         DO state = 1, nStates
+          ! This read needs to be generalized - must do nEnergyTypes + 1
           READ(eneUnit,'(15F15.8)',IOSTAT=ios) coeffs(timestep,step,state), stateEnergy(timestep,step,state,:)
           IF (ios /= 0) THEN
             CYCLE ReadSteps
