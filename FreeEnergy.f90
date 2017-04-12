@@ -31,7 +31,7 @@ MODULE FreeEnergy
       INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
       REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP))
 
-      useBin(:)  = .FALSE.
+      IF (PRESENT(useBin)) useBin(:)  = .FALSE.
       Nbins      = SIZE(binPopulations,1)
       NfepSteps  = SIZE(mappingEnergies,2)
       NtimeSteps = SIZE(mappingEnergies,1)
@@ -80,7 +80,7 @@ MODULE FreeEnergy
         ENDDO
         IF (popSum > 0) THEN
           PMF1D(bin) = PMF1D(bin) / popSum
-          useBin(bin) = .TRUE.
+          IF (PRESENT(useBin)) useBin(bin) = .TRUE.
         ENDIF
       ENDDO
 
