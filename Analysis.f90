@@ -9,15 +9,9 @@ MODULE Analysis
 
   CONTAINS
 
-!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1)+alpha(stateA),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binGa,minPop=minPop)
-!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1)+alpha(stateB),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binGb,minPop=minPop)
-! REAL(8) :: binGa(Nbins), binGb(Nbins)
-! REAL(8) :: dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
-!; head(3) = "Ga"; head(4) = "Gb"
-!       output(bin,3) = binGa(bin)
-!       output(bin,4) = binGb(bin)
+    SUBROUTINE FepUsGroundState()
 
-    SUBROUTINE FepUsGroundState
+     ! #DES: Compute and write the ground state PMF via the FEP/US method
 
      USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy
      USE Input,      ONLY : Nbins, minPop, stateA, stateB, mask
@@ -56,23 +50,24 @@ MODULE Analysis
 
 !*
 
-    SUBROUTINE FepBreakdown(lambda,mappingEnergies,mask,energyNames)
+    SUBROUTINE FepBreakdown(lambda,mappingEnergies,mask,energyNames,outUnit)
 
-      USE Output, ONLY : WriteCsv2D
-      USE FileIO, ONLY : OpenFile, CloseFile
+      ! #DES: Produce and write the type-wise breakdown of the FEP result
+
+      USE Output, ONLY     : WriteCsv2D
       USE FreeEnergy, ONLY : ComputeFEPProfile
+
       IMPLICIT NONE
+
       REAL(8), INTENT(IN) :: lambda(:), mappingEnergies(:,:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
+      INTEGER, INTENT(IN) :: outUnit
       CHARACTER(*), INTENT(IN) :: energyNames(:)
 
       CHARACTER(15) :: head(1+SIZE(energyNames)) ! 1 per column
       REAL(8) :: output(SIZE(mappingEnergies,2),1+SIZE(energyNames))
       INTEGER :: step, type
-      INTEGER, PARAMETER :: outUnit = 14
       REAL(8) :: profile(SIZE(mappingEnergies,2))
-
-      CALL OpenFile(outUnit,"fep-breakdown.csv","write")
 
       head(1) = "lambda"
       
@@ -89,8 +84,6 @@ MODULE Analysis
       ENDDO
 
       CALL WriteCSV2D(head,output,outUnit)
-
-      CALL CloseFile(outUnit)
 
     END SUBROUTINE FepBreakdown
 
@@ -462,4 +455,14 @@ MODULE Analysis
     END SUBROUTINE
 
 END MODULE Analysis
+
+! PARTS TO MAKE A FULL FEP/US ANALYSIS
+!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1)+alpha(stateA),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binGa,minPop=minPop)
+!     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1)+alpha(stateB),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binGb,minPop=minPop)
+! REAL(8) :: binGa(Nbins), binGb(Nbins)
+! REAL(8) :: dGa(Nbins,SIZE(energyGap,1)), dGb(Nbins,SIZE(energyGap,1))
+!; head(3) = "Ga"; head(4) = "Gb"
+!       output(bin,3) = binGa(bin)
+!       output(bin,4) = binGb(bin)
+
 

@@ -26,7 +26,7 @@ PROGRAM Fepcat
       USE FileIO,   ONLY : OpenFile, CloseFile
 
       IMPLICIT NONE
-      INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21
+      INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21, fepUnit = 22
 
       CALL OpenFile(meanUnit,"mean-energy.csv",'write')
       CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,meanUnit)
@@ -36,7 +36,9 @@ PROGRAM Fepcat
       CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),convUnit)
       CALL CloseFile(convUnit)
 
-      CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:))
+      CALL OpenFile(fepUnit,"fep-breakdown.csv","write")
+      CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:),fepUnit)
+      CALL CloseFile(fepUnit)
 
       CALL FepUsGroundState()
 
