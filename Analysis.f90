@@ -38,7 +38,6 @@ MODULE Analysis
 
       CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
       CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
-      STOP
       count = 0
       DO bin = 1, nBins
         IF (printBin(bin) .EQV. .TRUE.) THEN
