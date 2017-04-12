@@ -183,9 +183,9 @@ PROGRAM Qfep
      ! energyGap is the reaction coordinate, nBins is num histogram bins, binPop is histogram values,
      ! indices is which bin each point is in, binMidpoints is x values
 
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1),G_FEP,binPopulations,binIndices,PMF2D=dGa,PMF1D=binG,minPop=minPop)
-     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1),G_FEP,binPopulations,binIndices,PMF2D=dGb,PMF1D=binG,minPop=minPop)
-     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateA,1),G_FEP,binPopulations,binIndices,PMF2Dout=dGa,PMF1D=binG,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),stateEnergy(:,:,stateB,1),G_FEP,binPopulations,binIndices,PMF2Dout=dGb,PMF1D=binG,minPop=minPop)
+     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF2Dout=dGg,PMF1D=binG,minPop=minPop)
 
      DO step = 1, SIZE(energyGap,1)
        DO bin = 1, Nbins

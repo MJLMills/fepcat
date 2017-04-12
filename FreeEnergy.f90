@@ -13,7 +13,7 @@ MODULE FreeEnergy
 
 !*
 
-    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2D,PMF1D,minPop,useBin)
+    SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2Dout,PMF1D,minPop,useBin)
 
       ! #DES: Perform a FEP/US calculation of the potential of mean force (PMF) using the supplied
       !       histogram, reference free energy values and target/mapping energies.
@@ -24,11 +24,12 @@ MODULE FreeEnergy
       REAL(8), INTENT(IN)            :: G_FEP(:)
       INTEGER, INTENT(IN)            :: binPopulations(:,:), binIndices(:,:)
       INTEGER, INTENT(IN)            :: minPop
-      REAL(8), INTENT(OUT), OPTIONAL :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP))
+      REAL(8), INTENT(OUT), OPTIONAL :: PMF2Dout(SIZE(binPopulations,1),SIZE(G_FEP))
       REAL(8), INTENT(OUT)           :: PMF1D(SIZE(binPopulations,1))
       LOGICAL, INTENT(OUT), OPTIONAL :: useBin(SIZE(binPopulations,1))
       INTEGER                        :: Nbins, NfepSteps, NtimeSteps   ! Totals
       INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
+      REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP))
 
       useBin(:)  = .FALSE.
       Nbins      = SIZE(binPopulations,1)
@@ -58,6 +59,8 @@ MODULE FreeEnergy
           ENDIF
         ENDDO 
       ENDDO
+
+      IF (PRESENT(PMF2Dout)) PMF2Dout(:,:) = PMF2D(:,:)
 
       ! Finally produce the 1D PMF
 
