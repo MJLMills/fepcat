@@ -9,48 +9,46 @@ MODULE Analysis
 
   CONTAINS
 
-    SUBROUTINE FepUsGroundState()
+    SUBROUTINE FepUsGroundState(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,fepUnit)
 
-     ! #DES: Compute and write the ground state PMF via the FEP/US method
+      ! #DES: Compute and write the ground state PMF via the FEP/US method
 
-     USE Data,       ONLY : energyGap, mappingEnergies, groundStateEnergy
-     USE Input,      ONLY : Nbins, minPop, stateA, stateB, mask
-     USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
-     USE FileIO,     ONLY : OpenFile, CloseFile
-     USE Output,     ONLY : WriteCSV2D
+      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
+      USE FileIO,     ONLY : OpenFile, CloseFile
+      USE Output,     ONLY : WriteCSV2D
 
-     IMPLICIT NONE
+      IMPLICIT NONE
 
-     INTEGER, PARAMETER :: fepUnit = 77
-     INTEGER      :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
-     INTEGER      :: bin, count
-     REAL(8)      :: binMidpoints(Nbins)
-     REAL(8)      :: binGg(Nbins)  
-     REAL(8)      :: G_FEP(SIZE(energyGap,1))
-     LOGICAL      :: printBin(Nbins)
-     CHARACTER(3) :: head(2)
-     REAL(8)      :: output(Nbins,2)
+      REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
+      LOGICAL, INTENT(IN) :: mask(:,:)
+      INTEGER, INTENT(IN) :: Nbins, minPop, fepUnit
 
-     head(1) = "dE"; head(2) = "dG"  
+      INTEGER      :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
+      INTEGER      :: bin, count
+      REAL(8)      :: binMidpoints(Nbins)
+      REAL(8)      :: binGg(Nbins)  
+      REAL(8)      :: G_FEP(SIZE(energyGap,1))
+      LOGICAL      :: printBin(Nbins)
+      CHARACTER(3) :: head(2)
+      REAL(8)      :: output(Nbins,2)
 
-     CALL OpenFile(fepUnit,"fepus-groundstate.csv","write")
+      head(1) = "dE"; head(2) = "dG"  
 
-     CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
+      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP)
 
-     CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
-     CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
-     STOP
-     count = 0
-     DO bin = 1, nBins
-       IF (printBin(bin) .EQV. .TRUE.) THEN
-         count = count + 1
-         output(count,1) = binMidpoints(bin)
-         output(count,2) = binGg(bin)
-      ENDIF
-     ENDDO
-     WRITE(*,*) count
-     CALL WriteCsv2D(head,output(1:count,:),fepUnit)
-     CALL CloseFile(fepUnit)
+      CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
+      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
+      STOP
+      count = 0
+      DO bin = 1, nBins
+        IF (printBin(bin) .EQV. .TRUE.) THEN
+          count = count + 1
+          output(count,1) = binMidpoints(bin)
+          output(count,2) = binGg(bin)
+       ENDIF
+      ENDDO
+
+      CALL WriteCsv2D(head,output(1:count,:),fepUnit)
 
     END SUBROUTINE FepUSGroundState
 

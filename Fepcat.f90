@@ -20,27 +20,29 @@ PROGRAM Fepcat
 
     SUBROUTINE FullAnalysis()
 
-      USE Input,    ONLY : energyNames, mask, stateEnergy, coeffs, skip, stateA, stateB
-      USE Data,     ONLY : mappingEnergies, lambda
+      USE Input,    ONLY : energyNames, mask, stateEnergy, coeffs, skip, stateA, stateB, Nbins, minPop
+      USE Data,     ONLY : mappingEnergies, lambda, groundStateEnergy, energyGap
       USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState
       USE FileIO,   ONLY : OpenFile, CloseFile
 
       IMPLICIT NONE
-      INTEGER, PARAMETER :: meanUnit = 20, convUnit = 21, fepUnit = 22
+      INTEGER, PARAMETER :: outUnit = 20
 
-      CALL OpenFile(meanUnit,"mean-energy.csv",'write')
-      CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,meanUnit)
-      CALL CloseFile(meanUnit)
+      CALL OpenFile(outUnit,"mean-energy.csv",'write')
+      CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,outUnit)
+      CALL CloseFile(outUnit)
 
-      CALL OpenFile(convUnit,"convergence.csv",'write')
-      CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),convUnit)
-      CALL CloseFile(convUnit)
+      CALL OpenFile(outUnit,"convergence.csv",'write')
+      CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),outUnit)
+      CALL CloseFile(outUnit)
 
-      CALL OpenFile(fepUnit,"fep-breakdown.csv","write")
-      CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:),fepUnit)
-      CALL CloseFile(fepUnit)
+      CALL OpenFile(outUnit,"fep-breakdown.csv","write")
+      CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:),outUnit)
+      CALL CloseFile(outUnit)
 
-      CALL FepUsGroundState()
+      CALL OpenFile(outUnit,"fepus-groundstate.csv",'write')
+      CALL FepUsGroundState(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,outUnit)
+      CALL CloseFile(outUnit)
 
     END SUBROUTINE FullAnalysis
 
