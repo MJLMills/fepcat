@@ -543,7 +543,7 @@ MODULE Input
     INTEGER, INTENT(IN) :: logUnit
     INTEGER, PARAMETER :: eneUnit = 10
     CHARACTER(500) :: fileNames(nFepSteps)
-    INTEGER :: step, state, timestep, ios
+    INTEGER :: step, state, timestep, ios, type
     LOGICAL :: openSuccess
 
     WRITE(logUnit,*) ""
@@ -560,11 +560,14 @@ MODULE Input
       ! This would be the place to allocate space for this fep simulation's energy data
       DO timestep = 1, nTimesteps(step)
         DO state = 1, nStates
-          ! This read needs to be generalized - must do nEnergyTypes + 1
-          READ(eneUnit,'(15F15.8)',IOSTAT=ios) coeffs(timestep,step,state), stateEnergy(timestep,step,state,:)
-          IF (ios /= 0) THEN
-            CYCLE ReadSteps
-          ENDIF
+
+          READ(eneUnit,'(F15.8)',ADVANCE='NO',IOSTAT=ios) coeffs(timestep,step,state)
+          IF (ios /= 0) CYCLE ReadSteps
+
+          DO type = 1, nEnergyTypes
+            READ(eneUnit,'(F15.8)',ADVANCE='NO',IOSTAT=ios) stateEnergy(timestep,step,state,type)
+          ENDDO; READ(eneUnit,*)
+
         ENDDO
       ENDDO
       CALL CloseFile(eneUnit)
