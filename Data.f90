@@ -76,7 +76,9 @@ MODULE Data
       REAL(8) :: r1, r2
       INTEGER :: step, timestep
 
-      x = 1; y = 40; z = 59
+      x = 1
+      y = 37   ! 40
+      z = 4277 ! 59
 
       DO step = 1, SIZE(trajectory,1)
         DO timestep = 1, SIZE(trajectory,4)

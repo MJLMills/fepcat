@@ -13,7 +13,7 @@ MODULE Analysis
 
       ! #DES: Compute and write the ground state PMF via the FEP/US method
 
-      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
+      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS, ScanFepUs
       USE FileIO,     ONLY : OpenFile, CloseFile
       USE Output,     ONLY : WriteCSV2D
 
@@ -30,7 +30,7 @@ MODULE Analysis
       REAL(8)      :: G_FEP(SIZE(energyGap,1))
       LOGICAL      :: printBin(Nbins)
       CHARACTER(3) :: head(2)
-      REAL(8)      :: output(Nbins,2)
+      REAL(8)      :: output(Nbins,2), limits(3)
 
       head(1) = "dE"; head(2) = "dG"  
 
@@ -48,6 +48,9 @@ MODULE Analysis
       ENDDO
 
       CALL WriteCsv2D(head,output(1:count,:),fepUnit)
+      CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=limits(:))
+      WRITE(*,'(F7.2)',ADVANCE='NO') limits(2) - limits(1)
+      WRITE(*,'(F7.2)') limits(3) - limits(1)
 
     END SUBROUTINE FepUSGroundState
 

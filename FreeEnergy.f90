@@ -13,6 +13,35 @@ MODULE FreeEnergy
 
 !*
 
+    SUBROUTINE ScanFepUs(RC,dG,mask,stationaryPoints)
+
+      ! #DES: Very basic/simple way to get free energy changes from the PMF
+      !       Search left of the TS for the RS minimum and right for the 
+      !       PS minimum, assume the TS value is the max on the plot.
+
+      IMPLICIT NONE
+      REAL(8), INTENT(IN) :: RC(:), dG(:)
+      LOGICAL, INTENT(IN) :: mask(:)
+      REAL(8), INTENT(OUT) :: stationaryPoints(3)
+      INTEGER :: i
+
+      stationaryPoints(2) = MAXVAL(dG(:),mask)
+      
+      stationaryPoints(1) = HUGE(0.0d0)
+      stationaryPoints(3) = HUGE(0.0d0)
+      DO i = 1, SIZE(RC)
+        IF (mask(i) .EQV. .FALSE.) CYCLE 
+        IF (RC(i) < 0.0d0) THEN
+          IF (dG(i) < stationaryPoints(1)) stationaryPoints(1) = dG(i)
+        ELSE IF (RC(i) > 0.0d0) THEN
+          IF (dG(i) < stationaryPoints(3)) stationaryPoints(3) = dG(i)
+        ENDIF      
+      ENDDO
+
+    END SUBROUTINE ScanFepUs
+
+!*
+
     SUBROUTINE FepUs(mappingEnergies,targetEnergy,G_FEP,binPopulations,binIndices,PMF2Dout,PMF1D,minPop,useBin)
 
       ! #DES: Perform a FEP/US calculation of the potential of mean force (PMF) using the supplied
