@@ -21,6 +21,7 @@ MODULE DownhillSimplex
 !*
 
   ! needs to take an object function as an argument to pass to the nelder-mead optimizer
+  ! right now is just importing a fixed object function from module ObjectFunctions
   SUBROUTINE RunNelderMead(guess,lambda,logUnit,printDetails)
 
     ! #DES: Driver for Nelder-Mead optimizer, checks sanity of input, creates guess and informs the log.
@@ -120,6 +121,10 @@ MODULE DownhillSimplex
     simplex(:,:) = initialSimplex(:,:)
     n            = SIZE(simplex,2)
     m            = n + 1
+
+    DO i = 1, m
+      functionValues(i) = objectFunction(simplex(i,:))
+    ENDDO
 
     !repeat until convergence or excessive compute time
     DO step = 1, maxSteps
