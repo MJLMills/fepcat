@@ -19,7 +19,7 @@ MODULE DownhillSimplex
   CONTAINS
 
 !*
-
+  ! needs to take an object function as an argument to pass to the nelder-mead optimizer
   SUBROUTINE RunNelderMead(guess,lambda,logUnit,printDetails)
 
     ! #DES: Driver for Nelder-Mead optimizer, checks sanity of input, creates guess and informs the log.
@@ -250,12 +250,17 @@ END SUBROUTINE NelderMead
     ! #DES: This is the part that changes per-application. 
 
     IMPLICIT NONE
-    REAL(8), INTENT(IN) :: variables(:)
-    REAL(8) :: x, y
+    REAL(8), INTENT(IN) :: variables(:) !, targets(:)
+!    REAL(8) :: diff
 
-    x = variables(1)
-    y = variables(2)
-    objectFunction = harmonic2D(x,y)
+    ! For EVB-parameterisation, the variables are alpha and the parameters of the off-diagonals
+    ! and the object function must depend on the FEP/US free energy changes
+    objectFunction = variables(1)
+    objectFunction = 0.0d0
+!    DO i = 1, SIZE(variables)
+!      diff = target(i) - variables(i)
+!      objectFunction = objectFunction + (diff * diff)
+!    ENDDO
 
   END FUNCTION objectFunction
 
@@ -361,19 +366,6 @@ END SUBROUTINE NelderMead
     WRITE(logUnit,*)
 
   END SUBROUTINE PrintNameList
-
-    REAL(8) FUNCTION harmonic2D(x1,x2)
-
-      REAL(8), INTENT(IN) :: x1, x2
-      REAL(8), PARAMETER :: K(2) = (/5.0d0,31.0d0/), x0(2) = (/10.0d0,-1.2d0/)
-      REAL(8) :: diff(2)
-
-      diff(1) = x1 - x0(1)
-      diff(2) = x2 - x0(2)
-
-      harmonic2D = SUM(K(:)*diff(:)*diff(:))
-
-    END FUNCTION harmonic2D
 
 END MODULE DownhillSimplex
 
