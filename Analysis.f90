@@ -9,9 +9,9 @@ MODULE Analysis
 
   CONTAINS
 
-    SUBROUTINE FepUsGroundState(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,fepUnit)
+    SUBROUTINE FepUsGroundState(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,outUnit)
 
-      ! #DES: Compute and write the ground state PMF via the FEP/US method
+      ! #DES: Compute the ground state PMF via the FEP/US method and write to to the output unit
 
       USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS, ScanFepUs
       USE FileIO,     ONLY : OpenFile, CloseFile
@@ -21,7 +21,7 @@ MODULE Analysis
 
       REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
-      INTEGER, INTENT(IN) :: Nbins, minPop, fepUnit
+      INTEGER, INTENT(IN) :: Nbins, minPop, outUnit
 
       INTEGER      :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
       INTEGER      :: bin, count
@@ -47,7 +47,7 @@ MODULE Analysis
        ENDIF
       ENDDO
 
-      CALL WriteCsv2D(head,output(1:count,:),fepUnit)
+      CALL WriteCsv2D(head,output(1:count,:),outUnit)
       CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=limits(:))
       WRITE(*,'(F7.2)',ADVANCE='NO') limits(2) - limits(1)
       WRITE(*,'(F7.2)') limits(3) - limits(1)
