@@ -5,7 +5,7 @@ MODULE Analysis
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState
+  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState, FepUsFreeEnergies
 
   CONTAINS
 
@@ -13,8 +13,7 @@ MODULE Analysis
 
       ! #DES: Compute the ground state PMF via the FEP/US method and write to to the output unit
 
-      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS, ScanFepUs
-      USE FileIO,     ONLY : OpenFile, CloseFile
+      USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
       USE Output,     ONLY : WriteCSV2D
 
       IMPLICIT NONE
@@ -30,7 +29,7 @@ MODULE Analysis
       REAL(8)      :: G_FEP(SIZE(energyGap,1))
       LOGICAL      :: printBin(Nbins)
       CHARACTER(3) :: head(2)
-      REAL(8)      :: output(Nbins,2), limits(3)
+      REAL(8)      :: output(Nbins,2)
 
       head(1) = "dE"; head(2) = "dG"  
 
@@ -48,11 +47,42 @@ MODULE Analysis
       ENDDO
 
       CALL WriteCsv2D(head,output(1:count,:),outUnit)
-      CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=limits(:))
-      WRITE(*,'(F7.2)',ADVANCE='NO') limits(2) - limits(1)
-      WRITE(*,'(F7.2)') limits(3) - limits(1)
 
     END SUBROUTINE FepUSGroundState
+
+!*
+
+    SUBROUTINE FepUsFreeEnergies(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,relative)
+
+      ! #DES: Routine to compute and return the RS, TS and PS energies on a given PMF.
+      !       Assumes a general shape for the PES (through ScanFepUs) which may not be true.
+
+      USE FreeEnergy, ONLY : ScanFepUs, ComputeFEPProfile, Histogram, FepUS
+
+      IMPLICIT NONE
+
+      LOGICAL, INTENT(IN), OPTIONAL :: relative
+      REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
+      LOGICAL, INTENT(IN) :: mask(:,:)
+      INTEGER, INTENT(IN) :: Nbins, minPop
+
+      INTEGER :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
+      REAL(8) :: binMidpoints(Nbins)
+      REAL(8) :: binGg(Nbins)
+      REAL(8) :: G_FEP(SIZE(energyGap,1))
+      LOGICAL :: printBin(Nbins)
+      REAL(8) :: dG(3)
+
+      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP)
+      CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
+      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)            
+      CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=dG(:))
+
+      IF (PRESENT(relative) .AND. relative .EQV. .TRUE.) dG(:) = dG(:) - dG(1)
+
+      WRITE(*,'(F15.8)') dG(:)
+
+    END SUBROUTINE FepUsFreeEnergies
 
 !*
 

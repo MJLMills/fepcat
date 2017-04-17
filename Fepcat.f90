@@ -22,7 +22,7 @@ PROGRAM Fepcat
 
       USE Input,    ONLY : energyNames, mask, stateEnergy, coeffs, skip, stateA, stateB, Nbins, minPop
       USE Data,     ONLY : mappingEnergies, lambda, groundStateEnergy, energyGap
-      USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState
+      USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState, FepUsFreeEnergies
       USE FileIO,   ONLY : OpenFile, CloseFile
 
       IMPLICIT NONE
@@ -43,6 +43,8 @@ PROGRAM Fepcat
       CALL OpenFile(outUnit,"fepus-groundstate.csv",'write')
       CALL FepUsGroundState(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,outUnit)
       CALL CloseFile(outUnit)
+
+      CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.)
 
     END SUBROUTINE FullAnalysis
 
