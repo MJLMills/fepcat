@@ -5,7 +5,7 @@ MODULE Data
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: ComputeDerivedData, DeallocateDataArrays, lambda, energyGap, mappingEnergies, GroundStateEnergy, geomRC, computeGroundStateEnergy
+  PUBLIC :: ComputeDerivedData, DeallocateDataArrays, lambda, energyGap, mappingEnergies, GroundStateEnergy, geomRC, computeGroundStateEnergy, recomputeDependentData
 
   REAL(8), ALLOCATABLE :: lambda(:)
   REAL(8), ALLOCATABLE :: energyGap(:,:), groundStateEnergy(:,:), geomRC(:,:,:)
@@ -92,19 +92,20 @@ MODULE Data
     ENDSUBROUTINE ComputeGeometricRC
 
 !* OFF until needed
-!    SUBROUTINE RecomputeDependentData(alpha,couplingConstant,couplingGaussExpFactor)
-!
+
+    SUBROUTINE RecomputeDependentData(alpha)
+
       ! #DES: Recompute all quantities that depend on the EVB parameters
-!
-!      IMPLICIT NONE
-!      REAL(8), INTENT(IN) :: alpha(:)
+      USE Input, ONLY : couplingConstant, couplingExpExpFactor,couplingGaussExpFactor
+      IMPLICIT NONE
+      REAL(8), INTENT(IN) :: alpha(:)
 
-!      CALL ComputeMappingEnergies(alpha)
-!      CALL ComputeEnergyGap(alpha)
-!      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingGaussExpFactor)
-!      CALL ComputeGroundStateEnergy(alpha)
+      CALL ComputeMappingEnergies(alpha)
+      CALL ComputeEnergyGap(alpha)
+      CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
+      CALL ComputeGroundStateEnergy(alpha)
 
-!    END SUBROUTINE RecomputeDependentData
+    END SUBROUTINE RecomputeDependentData
 
 !*
 

@@ -19,6 +19,7 @@ MODULE DownhillSimplex
   CONTAINS
 
 !*
+
   ! needs to take an object function as an argument to pass to the nelder-mead optimizer
   SUBROUTINE RunNelderMead(guess,lambda,logUnit,printDetails)
 
@@ -63,6 +64,7 @@ MODULE DownhillSimplex
 
   SUBROUTINE GenerateSimplex(guess,lambda,logUnit,simplex)
 
+    USE ObjectFunctions, ONLY : objectFunction
     IMPLICIT NONE
 
     REAL(8), INTENT(IN)  :: guess(:), lambda(:)
@@ -95,6 +97,7 @@ MODULE DownhillSimplex
 
   SUBROUTINE NelderMead(initialSimplex,logUnit,debug,optimum,optValue,converged)
 
+    USE ObjectFunctions, ONLY : objectFunction
     IMPLICIT NONE
 
     REAL(8), INTENT(IN)  :: initialSimplex(:,:) ! m x n, each row is an n-dimensional vector
@@ -242,27 +245,6 @@ END SUBROUTINE NelderMead
     centroid(:) = centroid(:) / SIZE(input,2)
 
   END FUNCTION centroid
-
-!*
-
-  REAL(8) FUNCTION objectFunction(variables)
-
-    ! #DES: This is the part that changes per-application. 
-
-    IMPLICIT NONE
-    REAL(8), INTENT(IN) :: variables(:) !, targets(:)
-!    REAL(8) :: diff
-
-    ! For EVB-parameterisation, the variables are alpha and the parameters of the off-diagonals
-    ! and the object function must depend on the FEP/US free energy changes
-    objectFunction = variables(1)
-    objectFunction = 0.0d0
-!    DO i = 1, SIZE(variables)
-!      diff = target(i) - variables(i)
-!      objectFunction = objectFunction + (diff * diff)
-!    ENDDO
-
-  END FUNCTION objectFunction
 
 !*
 

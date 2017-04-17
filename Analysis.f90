@@ -80,7 +80,7 @@ MODULE Analysis
 
       IF (PRESENT(relative) .AND. relative .EQV. .TRUE.) dG(:) = dG(:) - dG(1)
 
-      WRITE(*,'(3F15.8)') dG(:)
+!      WRITE(*,'(3F15.8)') dG(:)
 
     END SUBROUTINE FepUsFreeEnergies
 
