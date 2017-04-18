@@ -42,33 +42,32 @@ MODULE EVBParameters
 
       WRITE(logUnit,'(A,I0.2,A)') "Auto-Determine ",nParams ," EVB Parameters"
 
-      localAlpha(:) = alpha(:)
-      localA(:,:)   = couplingConstant(:,:)
-      localMu(:,:)  = couplingExpExpFactor(:,:)
-      localEta(:,:) = couplingGaussExpFactor(:,:)
-
-      ! just guess the needed params then use the linearizer to create the guess vector.
+      localAlpha(:) = 0.0d0; localA(:,:)   = 0.0d0
+      localMu(:,:)  = 0.0d0; localEta(:,:) = 0.0d0
 
       IF (optAlpha .EQV. .TRUE.) THEN
 
         CALL RecomputeDependentData(alpha,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,1),mask(:,:),profile=profile)
-
         localAlpha(1) = alpha(1)
         localAlpha(2) = localAlpha(2) + (dGPS - profile(SIZE(profile)))
 
       ENDIF
 
       IF (optCoupling) THEN
+
         SELECT CASE (TRIM(ADJUSTL(couplingType)))
           CASE ("CONSTANT")
+            localA(:,:) = couplingConstant(:,:)
           CASE ("EXPONENT")
           CASE ("GAUSSIAN")
+            localA(:,:) = couplingConstant(:,:)
+            localEta(:,:) = couplingGaussExpFactor(:,:)
         END SELECT
+
       ENDIF
 
       CALL LinearizeParameters(localAlpha,localA,localMu,localEta,optAlpha,optCoupling,couplingType,params=guess,scale=scale)
-
       CALL RunNelderMead(guess,scale,6,.TRUE.)
 
     ENDSUBROUTINE OptimizeEVBParameters
@@ -83,8 +82,10 @@ MODULE EVBParameters
       REAL(8), INTENT(IN)      :: alpha(:), A(:,:), mu(:,:), eta(:,:)
       LOGICAL, INTENT(IN)      :: optAlpha, optCoupling
       CHARACTER(*), INTENT(IN) :: couplingType
+
       REAL(8), INTENT(OUT)     :: params(:)
       REAL(8), INTENT(OUT), OPTIONAL :: scale(:)
+
       INTEGER :: offset
 
       offset = 0
@@ -94,22 +95,22 @@ MODULE EVBParameters
         IF (PRESENT(scale)) scale(1) = alphaScale
       ENDIF
 
-      IF (optCoupling) THEN
+      IF (optCoupling .EQV. .TRUE.) THEN
 
         SELECT CASE (TRIM(ADJUSTL(couplingType)))
 
           CASE ("CONSTANT")
-            params(offset+1) = A(1,1)
+            params(offset+1) = A(1,2)
             IF (PRESENT(scale)) scale(offset+1) = aScale
           CASE ("EXPONENT")
-            params(offset+1) = A(1,1)
+            params(offset+1) = A(1,2)
             IF (PRESENT(scale)) scale(offset+1) = aScale
-            params(offset+2) = mu(1,1)
+            params(offset+2) = mu(1,2)
             IF (PRESENT(scale)) scale(offset+2) = muScale
           CASE ("GAUSSIAN")
-            params(offset+1) = A(1,1)
+            params(offset+1) = A(1,2)
             IF (PRESENT(scale)) scale(offset+1) = aScale
-            params(offset+2) = eta(1,1)
+            params(offset+2) = eta(1,2)
             IF (PRESENT(scale)) scale(offset+2) = etaScale
 
         END SELECT
@@ -142,13 +143,13 @@ MODULE EVBParameters
         SELECT CASE (TRIM(ADJUSTL(couplingType)))
 
           CASE ("CONSTANT")
-            A(1,1)   = params(offset+1)
+            A(1,2)   = params(offset+1)
           CASE ("EXPONENT")
-            A(1,1)   = params(offset+1)
-            mu(1,1)  = params(offset+2)
+            A(1,2)   = params(offset+1)
+            mu(1,2)  = params(offset+2)
           CASE ("GAUSSIAN")
-            A(1,1)   = params(offset+1)
-            eta(1,1) = params(offset+2)
+            A(1,2)   = params(offset+1)
+            eta(1,2) = params(offset+2)
 
         END SELECT
 
@@ -245,7 +246,7 @@ MODULE EVBParameters
 
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: optAlpha, optCoupling
-      CHARACTER, INTENT(IN) :: couplingType
+      CHARACTER(*), INTENT(IN) :: couplingType
 
       countParams = 0
       IF (optAlpha) countParams = countParams + 1
@@ -268,7 +269,7 @@ MODULE EVBParameters
       INTEGER :: i
       
       isCouplingTypeSupported = .FALSE.
-      DO i = 1, 3
+      DO i = 1, SIZE(couplingTypes)
         IF (TRIM(ADJUSTL(type)) == couplingTypes(i)) isCouplingTypeSupported = .TRUE.
       ENDDO
 

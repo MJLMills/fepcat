@@ -270,6 +270,9 @@ MODULE Input
         DO i = 1, nStates
           DO j = i+1, nstates
             READ(prmUnit,*) dummy, dummy, couplingConstant(i,j), couplingExpExpFactor(i,j), couplingGaussExpFactor(i,j)
+            couplingConstant(j,i)     = couplingConstant(i,j)
+            couplingExpExpFactor(j,i) = couplingExpExpFactor(i,j)
+            couplingGaussExpFactor(j,i) = couplingGaussExpFactor(i,j)
           ENDDO
         ENDDO
 

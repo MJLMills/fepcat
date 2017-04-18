@@ -2,6 +2,10 @@ MODULE ObjectFunctions
 
   IMPLICIT NONE
 
+  LOGICAL      :: optAlpha     = .TRUE.
+  LOGICAL      :: optCoupling  = .TRUE.
+  CHARACTER(8) :: couplingType = "CONSTANT"
+
   CONTAINS
 
   REAL(8) FUNCTION objectFunction(variables)
@@ -12,25 +16,24 @@ MODULE ObjectFunctions
     USE Input, ONLY : dGTS, dGPS, mask, Nbins, minPop
     USE Data, ONLY : energyGap, groundStateEnergy, mappingEnergies, RecomputeDependentData
     USE Analysis, ONLY : FepUsFreeEnergies
+    USE EVBParameters, ONLY : DelinearizeParameters
     USE FreeEnergy, ONLY : FepUS, ScanFepUS, Histogram, computeFEPProfile
 
     IMPLICIT NONE
 
     REAL(8), INTENT(IN) :: variables(:)
 
-    REAL(8) :: alpha(2), relative(3), A(2,2), mu(2,2), eta(2,2)
     INTEGER :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
     REAL(8) :: binMidpoints(Nbins)
-    REAL(8) :: binGg(Nbins)
+    REAL(8) :: alpha(2), A(2,2), mu(2,2), eta(2,2)
+    REAL(8) :: relative(3), binGg(Nbins)
     REAL(8) :: G_FEP(SIZE(energyGap,1))
     LOGICAL :: printBin(Nbins)
 
     ! For EVB-parameterisation, the variables are alpha and the parameters of the off-diagonals
     ! and the object function must depend on the FEP/US free energy changes
 
-    ! compute the free energy values with the current parameter set
-    alpha(1) = 0.0d0; alpha(2) = variables(1)
-    A(:,:) = 0.0d0; ! A(1,2) = variables(2); A(2,1) = A(1,2)
+    CALL DelinearizeParameters(variables(:),alpha(:),A(:,:),mu(:,:),eta(:,:),optAlpha,optCoupling,couplingType)
 
     CALL RecomputeDependentData(alpha,A,mu,eta)
     CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
@@ -39,9 +42,11 @@ MODULE ObjectFunctions
     CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=relative)
 
     relative(:) = relative(:) - relative(1)
-    WRITE(*,*) relative(2), relative(3)
 
-    objectFunction = (relative(3) - dGPS)**2.0d0 ! + (relative(2) - dGTS)**2.0d0
+    objectFunction = 0.0d0
+    IF (optAlpha    .EQV. .TRUE.) objectFunction = objectFunction + (relative(3) - dGPS)**2.0d0
+    IF (optCoupling .EQV. .TRUE.) objectFunction = objectFunction + (relative(2) - dGTS)**2.0d0
+    objectFunction = SQRT(objectFunction) ! costs time but gives object function units of energy
 
   END FUNCTION objectFunction
 
