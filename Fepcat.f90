@@ -47,7 +47,7 @@ PROGRAM Fepcat
 
       CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.)
 
-      CALL OptimizeEVBParameters(6,.TRUE.,.TRUE.)
+      CALL OptimizeEVBParameters(6,.TRUE.,.FALSE.,"CONSTANT")
 
     END SUBROUTINE FullAnalysis
 

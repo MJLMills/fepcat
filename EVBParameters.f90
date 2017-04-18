@@ -11,14 +11,21 @@ MODULE EVBParameters
 
   CONTAINS
 
-    INTEGER FUNCTION countParams(optAlpha,optCoupling)
+    INTEGER FUNCTION countParams(optAlpha,optCoupling,couplingType)
 
       IMPLICIT NONE
       LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+      CHARACTER, INTENT(IN) :: couplingType
 
       countParams = 0
-      IF (optAlpha)    countParams = countParams + 1
-      IF (optCoupling) countParams = countParams + 2
+      IF (optAlpha) countParams = countParams + 1
+      IF (optCoupling) THEN
+        IF (TRIM(ADJUSTL(couplingType)) == "CONSTANT") THEN
+          countParams = countParams + 1
+        ELSE
+          countParams = countParams + 2
+        ENDIF
+      ENDIF
 
     END FUNCTION CountParams
 
@@ -55,38 +62,47 @@ MODULE EVBParameters
 
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: optAlpha, optCoupling
-      CHARACTER, INTENT(IN) :: couplingType
+      CHARACTER(*), INTENT(IN) :: couplingType
       REAL(8) :: localAlpha(2), localA(2,2) !, localMu(2,2), localEta(2,2)
       REAL(8) :: profile(SIZE(mappingEnergies,2))
       REAL(8), ALLOCATABLE :: guess(:), scale(:) ! to pass into the optimizer
+      INTEGER :: nParams, offset
+
+      IF (isCouplingTypeSupported(couplingType) .EQV. .FALSE.) STOP "Error: Illegal value of couplingType passed to OptimizeEVBParameters"
+      nParams = countParams(optAlpha,optCoupling,couplingType)
+      IF (nParams <= 0) STOP "Error: Nothing to do in OptimizeEVBParameters"
+
+      ALLOCATE(guess(nParams)); ALLOCATE(scale(nParams))
 
       WRITE(logUnit,*) "Auto-Determine EVB Parameters"
 
       localAlpha(:) = alpha(:)
       localA(:,:)   = couplingConstant(:,:)
 
-      IF (optAlpha .EQV. .TRUE. .AND. optCoupling .EQV. .FALSE.) THEN
-
+      offset = 0
+      IF (optAlpha .EQV. .TRUE.) THEN
+        offset = 1
         CALL RecomputeDependentData(localAlpha,localA)
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,1),mask(:,:),profile=profile)
         localAlpha(2) = localAlpha(2) + (dGPS - profile(SIZE(profile)))
-
-        ALLOCATE(guess(1)); guess(1) = localAlpha(2)
-        ALLOCATE(scale(1)); scale(1) = alphaScale
-
-      ELSE IF (optAlpha .EQV. .TRUE. .AND. optCoupling .EQV. .TRUE.) THEN
-
-        ! guess alpha and coupling (need to know what kind of coupling)
-        IF (TRIM(ADJUSTL(couplingType)) == "CONSTANT") THEN
-          ! guess localA
-        ELSE IF (TRIM(ADJUSTL(couplingType)) == "EXPONENTIAL") THEN
-          ! guess localA and localMu
-        ELSE IF (TRIM(ADJUSTL(couplingType)) == "GAUSSIAN") THEN
-          ! guess localA and localEta
-        ENDIF
-
+        guess(1) = localAlpha(2)
+        scale(1) = alphaScale
       ENDIF
-     
+
+      IF (optCoupling) THEN
+        SELECT CASE (TRIM(ADJUSTL(couplingType)))
+          CASE ("CONSTANT")
+            guess(offset+1) = 100.0d0
+            scale(offset+1) = aScale
+          CASE ("EXPONENT")
+            guess(offset+1) = 100.0d0; guess(offset+2) = 0.00001d0
+            scale(offset+1) = aScale;  scale(offset+2) = muScale
+          CASE ("GAUSSIAN")
+            guess(offset+1) = 100.0d0; guess(offset+2) = 0.00001d0
+            scale(offset+1) = aScale;  scale(offset+2) = etaScale
+        END SELECT
+      ENDIF
+
       CALL RunNelderMead(guess,scale,6,.TRUE.)
 
     ENDSUBROUTINE OptimizeEVBParameters
