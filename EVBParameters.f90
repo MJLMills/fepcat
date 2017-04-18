@@ -11,39 +11,6 @@ MODULE EVBParameters
 
   CONTAINS
 
-    INTEGER FUNCTION countParams(optAlpha,optCoupling,couplingType)
-
-      IMPLICIT NONE
-      LOGICAL, INTENT(IN) :: optAlpha, optCoupling
-      CHARACTER, INTENT(IN) :: couplingType
-
-      countParams = 0
-      IF (optAlpha) countParams = countParams + 1
-      IF (optCoupling) THEN
-        IF (TRIM(ADJUSTL(couplingType)) == "CONSTANT") THEN
-          countParams = countParams + 1
-        ELSE
-          countParams = countParams + 2
-        ENDIF
-      ENDIF
-
-    END FUNCTION CountParams
-
-!*
-
-    LOGICAL FUNCTION isCouplingTypeSupported(type)
-
-      IMPLICIT NONE
-      CHARACTER(*), INTENT(IN) :: type
-      INTEGER :: i
-      
-      isCouplingTypeSupported = .FALSE.
-      DO i = 1, 3
-        IF (TRIM(ADJUSTL(type)) == couplingTypes(i)) isCouplingTypeSupported = .TRUE.
-      ENDDO
-
-    END FUNCTION isCouplingTypeSupported
-
 !*
 
     SUBROUTINE OptimizeEVBParameters(logUnit,optAlpha,optCoupling,couplingType)
@@ -53,59 +20,141 @@ MODULE EVBParameters
       ! The optimizer needs a sensible initial guess in order to find a physically relevant minimum.
 
       USE DownhillSimplex, ONLY : RunNelderMead
-
-      USE Input, ONLY : alpha, couplingConstant, mask, nBins, minPop, dGTS, dGPS
-      USE Data, ONLY : mappingEnergies, recomputeDependentData !, EnergyGap, groundStateEnergy 
+      USE Input, ONLY      : alpha, couplingConstant, couplingGaussExpFactor, couplingExpExpFactor, mask, nBins, minPop, dGTS, dGPS
+      USE Data, ONLY       : mappingEnergies, recomputeDependentData !, EnergyGap, groundStateEnergy 
       USE FreeEnergy, ONLY : ComputeFEPProfile
 
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN) :: logUnit
-      LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+      INTEGER,      INTENT(IN) :: logUnit
+      LOGICAL,      INTENT(IN) :: optAlpha, optCoupling
       CHARACTER(*), INTENT(IN) :: couplingType
-      REAL(8) :: localAlpha(2), localA(2,2) !, localMu(2,2), localEta(2,2)
+
+      REAL(8) :: localAlpha(2), localA(2,2), localMu(2,2), localEta(2,2)
       REAL(8) :: profile(SIZE(mappingEnergies,2))
-      REAL(8), ALLOCATABLE :: guess(:), scale(:) ! to pass into the optimizer
-      INTEGER :: nParams, offset
+      INTEGER :: nParams
+      REAL(8), ALLOCATABLE :: guess(:), scale(:)
 
       IF (isCouplingTypeSupported(couplingType) .EQV. .FALSE.) STOP "Error: Illegal value of couplingType passed to OptimizeEVBParameters"
-      nParams = countParams(optAlpha,optCoupling,couplingType)
-      IF (nParams <= 0) STOP "Error: Nothing to do in OptimizeEVBParameters"
+      nParams = countParams(optAlpha,optCoupling,couplingType); IF (nParams <= 0) STOP "Error: Nothing to do in OptimizeEVBParameters"
 
       ALLOCATE(guess(nParams)); ALLOCATE(scale(nParams))
 
-      WRITE(logUnit,*) "Auto-Determine EVB Parameters"
+      WRITE(logUnit,'(A,I0.2,A)') "Auto-Determine ",nParams ," EVB Parameters"
 
       localAlpha(:) = alpha(:)
       localA(:,:)   = couplingConstant(:,:)
+      localMu(:,:)  = couplingExpExpFactor(:,:)
+      localEta(:,:) = couplingGaussExpFactor(:,:)
 
-      offset = 0
+      ! just guess the needed params then use the linearizer to create the guess vector.
+
       IF (optAlpha .EQV. .TRUE.) THEN
-        offset = 1
-        CALL RecomputeDependentData(localAlpha,localA)
+
+        CALL RecomputeDependentData(alpha,couplingConstant)
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,1),mask(:,:),profile=profile)
+
+        localAlpha(1) = alpha(1)
         localAlpha(2) = localAlpha(2) + (dGPS - profile(SIZE(profile)))
-        guess(1) = localAlpha(2)
-        scale(1) = alphaScale
+
       ENDIF
 
       IF (optCoupling) THEN
         SELECT CASE (TRIM(ADJUSTL(couplingType)))
           CASE ("CONSTANT")
-            guess(offset+1) = 100.0d0
-            scale(offset+1) = aScale
           CASE ("EXPONENT")
-            guess(offset+1) = 100.0d0; guess(offset+2) = 0.00001d0
-            scale(offset+1) = aScale;  scale(offset+2) = muScale
           CASE ("GAUSSIAN")
-            guess(offset+1) = 100.0d0; guess(offset+2) = 0.00001d0
-            scale(offset+1) = aScale;  scale(offset+2) = etaScale
         END SELECT
       ENDIF
+
+      CALL LinearizeParameters(localAlpha,localA,localMu,localEta,optAlpha,optCoupling,couplingType,params=guess,scale=scale)
 
       CALL RunNelderMead(guess,scale,6,.TRUE.)
 
     ENDSUBROUTINE OptimizeEVBParameters
+
+!*
+
+    SUBROUTINE LinearizeParameters(alpha,A,mu,eta,optAlpha,optCoupling,couplingType,params,scale)
+
+      ! Knows the rules to take the parameter arrays and convert to a vector for optimisation
+
+      IMPLICIT NONE
+      REAL(8), INTENT(IN)      :: alpha(:), A(:,:), mu(:,:), eta(:,:)
+      LOGICAL, INTENT(IN)      :: optAlpha, optCoupling
+      CHARACTER(*), INTENT(IN) :: couplingType
+      REAL(8), INTENT(OUT)     :: params(:)
+      REAL(8), INTENT(OUT), OPTIONAL :: scale(:)
+      INTEGER :: offset
+
+      offset = 0
+      IF (optAlpha .EQV. .TRUE.) THEN
+        offset = 1
+        params(1) = alpha(2)
+        IF (PRESENT(scale)) scale(1) = alphaScale
+      ENDIF
+
+      IF (optCoupling) THEN
+
+        SELECT CASE (TRIM(ADJUSTL(couplingType)))
+
+          CASE ("CONSTANT")
+            params(offset+1) = A(1,1)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+          CASE ("EXPONENT")
+            params(offset+1) = A(1,1)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+            params(offset+2) = mu(1,1)
+            IF (PRESENT(scale)) scale(offset+2) = muScale
+          CASE ("GAUSSIAN")
+            params(offset+1) = A(1,1)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+            params(offset+2) = eta(1,1)
+            IF (PRESENT(scale)) scale(offset+2) = etaScale
+
+        END SELECT
+
+      ENDIF
+
+    END SUBROUTINE LinearizeParameters
+
+!*
+
+   SUBROUTINE DelinearizeParameters(params,alpha,A,mu,eta,optAlpha,optCoupling,couplingType)
+
+     ! Knows the rules to take a vector of parameters and return them to their correct positions in properly-shaped arrays
+
+     IMPLICIT NONE
+     LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+     CHARACTER(*), INTENT(IN) :: couplingType
+     REAL(8), INTENT(IN) :: params(:)
+     REAL(8), INTENT(OUT) :: alpha(2), A(2,2), mu(2,2), eta(2,2)
+     INTEGER :: offset
+
+      offset = 0
+      IF (optAlpha .EQV. .TRUE.) THEN
+        offset = 1
+        alpha(2) = params(1)
+      ENDIF
+
+      IF (optCoupling .EQV. .TRUE.) THEN
+
+        SELECT CASE (TRIM(ADJUSTL(couplingType)))
+
+          CASE ("CONSTANT")
+            A(1,1)   = params(offset+1)
+          CASE ("EXPONENT")
+            A(1,1)   = params(offset+1)
+            mu(1,1)  = params(offset+2)
+          CASE ("GAUSSIAN")
+            A(1,1)   = params(offset+1)
+            eta(1,1) = params(offset+2)
+
+        END SELECT
+
+      ENDIF
+
+   END SUBROUTINE DelinearizeParameters
 
 !*
 
@@ -188,5 +237,43 @@ MODULE EVBParameters
       alpha(2) = dGPS - fepProfile(SIZE(fepProfile))
 
     END SUBROUTINE ApproximateEVBAlphas
+
+
+!*
+
+    INTEGER FUNCTION countParams(optAlpha,optCoupling,couplingType)
+
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+      CHARACTER, INTENT(IN) :: couplingType
+
+      countParams = 0
+      IF (optAlpha) countParams = countParams + 1
+      IF (optCoupling) THEN
+        IF (TRIM(ADJUSTL(couplingType)) == "CONSTANT") THEN
+          countParams = countParams + 1
+        ELSE
+          countParams = countParams + 2
+        ENDIF
+      ENDIF
+
+    END FUNCTION CountParams
+
+!*
+
+    LOGICAL FUNCTION isCouplingTypeSupported(type)
+
+      IMPLICIT NONE
+      CHARACTER(*), INTENT(IN) :: type
+      INTEGER :: i
+      
+      isCouplingTypeSupported = .FALSE.
+      DO i = 1, 3
+        IF (TRIM(ADJUSTL(type)) == couplingTypes(i)) isCouplingTypeSupported = .TRUE.
+      ENDDO
+
+    END FUNCTION isCouplingTypeSupported
+
+!*
 
 END MODULE EVBParameters
