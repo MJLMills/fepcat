@@ -91,18 +91,17 @@ MODULE Data
 
     ENDSUBROUTINE ComputeGeometricRC
 
-!* OFF until needed
+!*
 
-    SUBROUTINE RecomputeDependentData(alpha,A)
+    SUBROUTINE RecomputeDependentData(alpha,A,mu,eta)
 
       ! #DES: Recompute all quantities that depend on the EVB parameters
-      USE Input, ONLY : couplingExpExpFactor,couplingGaussExpFactor
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: alpha(:), A(:,:)
+      REAL(8), INTENT(IN) :: alpha(:), A(:,:), mu(:,:), eta(:,:)
 
       CALL ComputeMappingEnergies(alpha)
       CALL ComputeEnergyGap(alpha)
-      CALL ComputeOffDiagonals(energyGap,A,couplingExpExpFactor,couplingGaussExpFactor)
+      CALL ComputeOffDiagonals(energyGap,A,mu,eta)
       CALL ComputeGroundStateEnergy(alpha)
 
     END SUBROUTINE RecomputeDependentData

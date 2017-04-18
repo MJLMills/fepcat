@@ -51,7 +51,7 @@ MODULE EVBParameters
 
       IF (optAlpha .EQV. .TRUE.) THEN
 
-        CALL RecomputeDependentData(alpha,couplingConstant)
+        CALL RecomputeDependentData(alpha,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,1),mask(:,:),profile=profile)
 
         localAlpha(1) = alpha(1)
