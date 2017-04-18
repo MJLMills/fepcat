@@ -24,11 +24,9 @@ PROGRAM Fepcat
       USE Data,     ONLY : mappingEnergies, lambda, groundStateEnergy, energyGap
       USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState, FepUsFreeEnergies
       USE FileIO,   ONLY : OpenFile, CloseFile
-      USE DownhillSimplex, ONLY : RunNelderMead
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: outUnit = 20
-      REAL(8) :: guess(2), scale(2)
 
       CALL OpenFile(outUnit,"mean-energy.csv",'write')
       CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,outUnit)
@@ -47,10 +45,6 @@ PROGRAM Fepcat
       CALL CloseFile(outUnit)
 
       CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.)
-
-      guess(1) = -52.0d0; scale(1) = 3.0d0
-      guess(2) = 100.0d0; scale(2) = 50.0d0
-      CALL RunNelderMead(guess,scale,6,.TRUE.)
 
     END SUBROUTINE FullAnalysis
 
