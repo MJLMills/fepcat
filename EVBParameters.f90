@@ -115,9 +115,8 @@ MODULE EVBParameters
       mu(stateA,stateB) = 1.0d0 / (2.0d0 * c * c)
       A(stateA,stateB) = MAXVAL(fepusProfile) - dGTS
 
-      WRITE(*,*) "MU = ", mu(stateA,stateB), "A = ", A(stateA,stateB)
-
     END SUBROUTINE ApproximateEVBCoupling
+
 !*
 
     SUBROUTINE ApproximateEVBAlphas(fepProfile,dGPS,alpha)
