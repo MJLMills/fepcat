@@ -9,20 +9,6 @@ MODULE Analysis
 
   CONTAINS
 
-    SUBROUTINE DetermineParameters
-
-      ! #Des: Guess EVB parameters and then refine them
-
-      USE DownhillSimplex, ONLY : RunNelderMead
-      IMPLICIT NONE
-      REAL(8) :: guess(2), scale(2)
-
-      guess(1) = -52.0d0; scale(1) = 3.0d0
-      guess(2) = 100.0d0; scale(2) = 50.0d0
-      CALL RunNelderMead(guess,scale,6,.TRUE.)
-
-    ENDSUBROUTINE DetermineParameters
-
 !*
 
     SUBROUTINE FepUsGroundState(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,outUnit)

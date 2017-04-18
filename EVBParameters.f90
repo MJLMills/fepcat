@@ -5,8 +5,60 @@ MODULE EVBParameters
   CONTAINS
 
 !*
+    SUBROUTINE OptimizeEVBParameters(paramMask,nStates,logUnit)
 
-    SUBROUTINE EVBParameters(mappingEnergies,energyGap,groundStateEnergy,mask,nBins,minPop,dGTS,dGPS,alpha,mu,A) !data and targets
+      ! #Des: Guess EVB parameters and then refine them
+      ! The EVB parameters are: alpha(nstates), A(nStates,nStates), mu (nStates,nStates) and eta(nStates,nStates)
+      ! The optimizer needs a sensible initial guess in order to find a physically relevant minimum.
+
+      USE DownhillSimplex, ONLY : RunNelderMead
+      IMPLICIT NONE
+      INTEGER, INTENT(IN) :: logUnit, nStates
+      LOGICAL, INTENT(IN) :: paramMask(:)
+
+      REAL(8), PARAMETER :: alphaScale = 10.0d0
+      REAL(8), PARAMETER :: aScale     = 50.0d0
+      REAL(8), PARAMETER :: muScale    = 0.0001d0
+      REAL(8), PARAMETER :: etaScale   = 0.000001d0
+
+      CHARACTER(8) :: paramNames(4*nStates), charState
+      REAL(8), ALLOCATABLE :: guess(:), scale(:)
+      INTEGER :: nParams, param, state
+
+      DO state = 1, nStates
+        WRITE(charState,'(I0.2)') state
+        paramNames(state) = "alpha_"//charState
+        paramNames(nStates+state) = "A_"//charState
+        paramNames((2*nStates)+state) = "mu_"//charState
+        paramNames((3*nStates)+state) = "eta_"//charState
+      ENDDO
+
+      nParams = 0
+      DO param = 1, SIZE(paramMask)
+        WRITE(logUnit,*) paramNames(param), paramMask(param)
+        IF (paramMask(param) .EQV. .TRUE.) nParams = nParams + 1
+      ENDDO
+      WRITE(logUnit,*) "Number of Optimization Parameters: ", nParams
+      ALLOCATE(guess(nParams))
+      ALLOCATE(scale(nParams))
+      
+      ! generate the guess values
+      DO state = 1, nStates
+      ENDDO
+
+      guess(1) = -52.0d0; scale(1) = 10.0d0
+      guess(2) = 100.0d0; scale(2) = 50.0d0
+
+      CALL RunNelderMead(guess,scale,6,.TRUE.)
+
+      IF (ALLOCATED(guess)) DEALLOCATE(guess)
+      IF (ALLOCATED(scale)) DEALLOCATE(scale)
+
+    ENDSUBROUTINE OptimizeEVBParameters
+
+!*
+
+    SUBROUTINE GuessEVBParameters(mappingEnergies,energyGap,groundStateEnergy,mask,nBins,minPop,dGTS,dGPS,alpha,mu,A) !data and targets
 
       USE Data, ONLY : ComputeGroundStateEnergy
       IMPLICIT NONE
@@ -41,7 +93,7 @@ MODULE EVBParameters
       ! And pass it in to get the A/mu values
       CALL ApproximateEVBCoupling(binMidpoints,binG,binMask,dGTS,mu,A)
 
-    END SUBROUTINE EVBParameters
+    END SUBROUTINE GuessEVBParameters
 
 !*
 
