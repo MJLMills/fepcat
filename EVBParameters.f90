@@ -7,8 +7,35 @@ MODULE EVBParameters
   REAL(8), PARAMETER :: aScale     = 50.0d0
   REAL(8), PARAMETER :: muScale    = 0.0001d0
   REAL(8), PARAMETER :: etaScale   = 0.000001d0
+  CHARACTER(8), PARAMETER :: couplingTypes(3) = (/"CONSTANT","EXPONENT","GAUSSIAN"/)
 
   CONTAINS
+
+    INTEGER FUNCTION countParams(optAlpha,optCoupling)
+
+      IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+
+      countParams = 0
+      IF (optAlpha)    countParams = countParams + 1
+      IF (optCoupling) countParams = countParams + 2
+
+    END FUNCTION CountParams
+
+!*
+
+    LOGICAL FUNCTION isCouplingTypeSupported(type)
+
+      IMPLICIT NONE
+      CHARACTER(*), INTENT(IN) :: type
+      INTEGER :: i
+      
+      isCouplingTypeSupported = .FALSE.
+      DO i = 1, 3
+        IF (TRIM(ADJUSTL(type)) == couplingTypes(i)) isCouplingTypeSupported = .TRUE.
+      ENDDO
+
+    END FUNCTION isCouplingTypeSupported
 
 !*
 
@@ -32,11 +59,6 @@ MODULE EVBParameters
       REAL(8) :: localAlpha(2), localA(2,2) !, localMu(2,2), localEta(2,2)
       REAL(8) :: profile(SIZE(mappingEnergies,2))
       REAL(8), ALLOCATABLE :: guess(:), scale(:) ! to pass into the optimizer
-      CHARACTER(8) :: couplingTypes(3)
-
-      couplingTypes(1) = "CONSTANT"; 
-      couplingTypes(2) = "EXPONENT"; 
-      couplingTypes(3) = "GAUSSIAN";
 
       WRITE(logUnit,*) "Auto-Determine EVB Parameters"
 
@@ -55,11 +77,11 @@ MODULE EVBParameters
       ELSE IF (optAlpha .EQV. .TRUE. .AND. optCoupling .EQV. .TRUE.) THEN
 
         ! guess alpha and coupling (need to know what kind of coupling)
-        IF (couplingType .EQV. "CONSTANT") THEN
+        IF (TRIM(ADJUSTL(couplingType)) == "CONSTANT") THEN
           ! guess localA
-        ELSE IF (couplingType .EQV. "EXPONENTIAL") THEN
+        ELSE IF (TRIM(ADJUSTL(couplingType)) == "EXPONENTIAL") THEN
           ! guess localA and localMu
-        ELSE IF (couplingType .EQV. "GAUSSIAN") THEN)
+        ELSE IF (TRIM(ADJUSTL(couplingType)) == "GAUSSIAN") THEN
           ! guess localA and localEta
         ENDIF
 
