@@ -24,6 +24,7 @@ PROGRAM Fepcat
       USE Data,     ONLY : mappingEnergies, lambda, groundStateEnergy, energyGap
       USE Analysis, ONLY : WriteMeanEnergyBreakdown, AnalyzeSimulationConvergence, FepBreakdown, FepUsGroundState, FepUsFreeEnergies
       USE FileIO,   ONLY : OpenFile, CloseFile
+      USE EVBParameters, ONLY : OptimizeEVBParameters
 
       IMPLICIT NONE
       INTEGER, PARAMETER :: outUnit = 20
@@ -45,6 +46,8 @@ PROGRAM Fepcat
       CALL CloseFile(outUnit)
 
       CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.)
+
+      CALL OptimizeEVBParameters(6,.TRUE.,.TRUE.)
 
     END SUBROUTINE FullAnalysis
 

@@ -2,57 +2,70 @@ MODULE EVBParameters
 
   IMPLICIT NONE
 
+  ! Should be input values
+  REAL(8), PARAMETER :: alphaScale = 10.0d0
+  REAL(8), PARAMETER :: aScale     = 50.0d0
+  REAL(8), PARAMETER :: muScale    = 0.0001d0
+  REAL(8), PARAMETER :: etaScale   = 0.000001d0
+
   CONTAINS
 
 !*
-    SUBROUTINE OptimizeEVBParameters(paramMask,nStates,logUnit)
+
+    SUBROUTINE OptimizeEVBParameters(logUnit,optAlpha,optCoupling,couplingType)
 
       ! #Des: Guess EVB parameters and then refine them
       ! The EVB parameters are: alpha(nstates), A(nStates,nStates), mu (nStates,nStates) and eta(nStates,nStates)
       ! The optimizer needs a sensible initial guess in order to find a physically relevant minimum.
 
       USE DownhillSimplex, ONLY : RunNelderMead
+
+      USE Input, ONLY : alpha, couplingConstant, mask, nBins, minPop, dGTS, dGPS
+      USE Data, ONLY : mappingEnergies, recomputeDependentData !, EnergyGap, groundStateEnergy 
+      USE FreeEnergy, ONLY : ComputeFEPProfile
+
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: logUnit, nStates
-      LOGICAL, INTENT(IN) :: paramMask(:)
 
-      REAL(8), PARAMETER :: alphaScale = 10.0d0
-      REAL(8), PARAMETER :: aScale     = 50.0d0
-      REAL(8), PARAMETER :: muScale    = 0.0001d0
-      REAL(8), PARAMETER :: etaScale   = 0.000001d0
+      INTEGER, INTENT(IN) :: logUnit
+      LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+      CHARACTER, INTENT(IN) :: couplingType
+      REAL(8) :: localAlpha(2), localA(2,2) !, localMu(2,2), localEta(2,2)
+      REAL(8) :: profile(SIZE(mappingEnergies,2))
+      REAL(8), ALLOCATABLE :: guess(:), scale(:) ! to pass into the optimizer
+      CHARACTER(8) :: couplingTypes(3)
 
-      CHARACTER(8) :: paramNames(4*nStates), charState
-      REAL(8), ALLOCATABLE :: guess(:), scale(:)
-      INTEGER :: nParams, param, state
+      couplingTypes(1) = "CONSTANT"; 
+      couplingTypes(2) = "EXPONENT"; 
+      couplingTypes(3) = "GAUSSIAN";
 
-      DO state = 1, nStates
-        WRITE(charState,'(I0.2)') state
-        paramNames(state) = "alpha_"//charState
-        paramNames(nStates+state) = "A_"//charState
-        paramNames((2*nStates)+state) = "mu_"//charState
-        paramNames((3*nStates)+state) = "eta_"//charState
-      ENDDO
+      WRITE(logUnit,*) "Auto-Determine EVB Parameters"
 
-      nParams = 0
-      DO param = 1, SIZE(paramMask)
-        WRITE(logUnit,*) paramNames(param), paramMask(param)
-        IF (paramMask(param) .EQV. .TRUE.) nParams = nParams + 1
-      ENDDO
-      WRITE(logUnit,*) "Number of Optimization Parameters: ", nParams
-      ALLOCATE(guess(nParams))
-      ALLOCATE(scale(nParams))
-      
-      ! generate the guess values
-      DO state = 1, nStates
-      ENDDO
+      localAlpha(:) = alpha(:)
+      localA(:,:)   = couplingConstant(:,:)
 
-      guess(1) = -52.0d0; scale(1) = 10.0d0
-      guess(2) = 100.0d0; scale(2) = 50.0d0
+      IF (optAlpha .EQV. .TRUE. .AND. optCoupling .EQV. .FALSE.) THEN
 
+        CALL RecomputeDependentData(localAlpha,localA)
+        CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:,1),mask(:,:),profile=profile)
+        localAlpha(2) = localAlpha(2) + (dGPS - profile(SIZE(profile)))
+
+        ALLOCATE(guess(1)); guess(1) = localAlpha(2)
+        ALLOCATE(scale(1)); scale(1) = alphaScale
+
+      ELSE IF (optAlpha .EQV. .TRUE. .AND. optCoupling .EQV. .TRUE.) THEN
+
+        ! guess alpha and coupling (need to know what kind of coupling)
+        IF (couplingType .EQV. "CONSTANT") THEN
+          ! guess localA
+        ELSE IF (couplingType .EQV. "EXPONENTIAL") THEN
+          ! guess localA and localMu
+        ELSE IF (couplingType .EQV. "GAUSSIAN") THEN)
+          ! guess localA and localEta
+        ENDIF
+
+      ENDIF
+     
       CALL RunNelderMead(guess,scale,6,.TRUE.)
-
-      IF (ALLOCATED(guess)) DEALLOCATE(guess)
-      IF (ALLOCATED(scale)) DEALLOCATE(scale)
 
     ENDSUBROUTINE OptimizeEVBParameters
 
@@ -61,6 +74,7 @@ MODULE EVBParameters
     SUBROUTINE GuessEVBParameters(mappingEnergies,energyGap,groundStateEnergy,mask,nBins,minPop,dGTS,dGPS,alpha,mu,A) !data and targets
 
       USE Data, ONLY : ComputeGroundStateEnergy
+      USE FreeEnergy, ONLY : ComputeFEPProfile, FEPUs, histogram
       IMPLICIT NONE
 
       REAL(8), INTENT(IN) :: mappingEnergies(:,:,:), energyGap(:,:), groundStateEnergy(:,:)
@@ -77,6 +91,7 @@ MODULE EVBParameters
       LOGICAL :: binMask(Nbins)
       INTEGER :: bin
 
+      !
       CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),mask(:,:),profile=profile)
       CALL ApproximateEVBAlphas(profile,dGPS,alpha(:))
 
@@ -85,7 +100,7 @@ MODULE EVBParameters
       ! Currently forced to get the 2D and 1D FEP/US results, but only want the 1D (binG)
 
       CALL Histogram(energyGap,mask,Nbins,binPopulations,binIndices,binMidpoints)
-      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy,profile,binPopulations,binIndices,PMF2D=dGg,PMF1D=binG,minPop=minPop)
+      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy,profile,binPopulations,binIndices,PMF2Dout=dGg,PMF1D=binG,minPop=minPop)
       binMask(:) = .TRUE.
       DO bin = 1, Nbins
         IF (SUM(binPopulations(bin,:)) < minPop) binMask(bin) = .FALSE.
@@ -125,7 +140,7 @@ MODULE EVBParameters
       ! Only works for relative parameters.
 
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: dGPS, fepProfile(:)
+      REAL(8), INTENT(IN)  :: dGPS, fepProfile(:)
       REAL(8), INTENT(OUT) :: alpha(2)
 
       alpha(:) = 0.0d0
@@ -133,10 +148,6 @@ MODULE EVBParameters
       ! alpha is determined just as a constant difference between desired and experimental values
       alpha(1) = 0.0d0
       alpha(2) = dGPS - fepProfile(SIZE(fepProfile))
-
-      WRITE(*,*) "dGPS_EXP = ", dGPS
-      WRITE(*,*) "dGPS_FEP = ", fepProfile(SIZE(fepProfile))
-      WRITE(*,*) "Alpha(2) = ", alpha(2)
 
     END SUBROUTINE ApproximateEVBAlphas
 

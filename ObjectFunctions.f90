@@ -29,7 +29,7 @@ MODULE ObjectFunctions
 
     ! compute the free energy values with the current parameter set
     alpha(1) = 0.0d0; alpha(2) = variables(1)
-    A(:,:) = 0.0d0; A(1,2) = variables(2); A(2,1) = A(1,2)
+    A(:,:) = 0.0d0; ! A(1,2) = variables(2); A(2,1) = A(1,2)
 
     CALL RecomputeDependentData(alpha,A)
     CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
@@ -39,7 +39,7 @@ MODULE ObjectFunctions
 
     relative(:) = relative(:) - relative(1)
     WRITE(*,*) relative(2), relative(3)
-    objectFunction = (relative(3) - dGPS)**2.0d0 + (relative(2) - dGTS)**2.0d0
+    objectFunction = (relative(3) - dGPS)**2.0d0 ! + (relative(2) - dGTS)**2.0d0
 
   END FUNCTION objectFunction
 
