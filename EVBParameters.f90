@@ -2,12 +2,10 @@ MODULE EVBParameters
 
   IMPLICIT NONE
 
-  ! Should be input values
-  REAL(8), PARAMETER :: alphaScale = 10.0d0
-  REAL(8), PARAMETER :: aScale     = 50.0d0
-  REAL(8), PARAMETER :: muScale    = 0.0001d0
-  REAL(8), PARAMETER :: etaScale   = 0.000001d0
+  REAL(8) :: aScale = 50.0d0, alphaScale = 10.0d0, muScale = 0.00001d0, etaScale = 0.00001d0
+
   CHARACTER(8), PARAMETER :: couplingTypes(3) = (/"CONSTANT","EXPONENT","GAUSSIAN"/)
+  LOGICAL :: optAlpha, optCoupling
 
   CONTAINS
 
@@ -71,91 +69,6 @@ MODULE EVBParameters
       CALL RunNelderMead(guess,scale,6,.TRUE.)
 
     ENDSUBROUTINE OptimizeEVBParameters
-
-!*
-
-    SUBROUTINE LinearizeParameters(alpha,A,mu,eta,optAlpha,optCoupling,couplingType,params,scale)
-
-      ! Knows the rules to take the parameter arrays and convert to a vector for optimisation
-
-      IMPLICIT NONE
-      REAL(8), INTENT(IN)      :: alpha(:), A(:,:), mu(:,:), eta(:,:)
-      LOGICAL, INTENT(IN)      :: optAlpha, optCoupling
-      CHARACTER(*), INTENT(IN) :: couplingType
-
-      REAL(8), INTENT(OUT)     :: params(:)
-      REAL(8), INTENT(OUT), OPTIONAL :: scale(:)
-
-      INTEGER :: offset
-
-      offset = 0
-      IF (optAlpha .EQV. .TRUE.) THEN
-        offset = 1
-        params(1) = alpha(2)
-        IF (PRESENT(scale)) scale(1) = alphaScale
-      ENDIF
-
-      IF (optCoupling .EQV. .TRUE.) THEN
-
-        SELECT CASE (TRIM(ADJUSTL(couplingType)))
-
-          CASE ("CONSTANT")
-            params(offset+1) = A(1,2)
-            IF (PRESENT(scale)) scale(offset+1) = aScale
-          CASE ("EXPONENT")
-            params(offset+1) = A(1,2)
-            IF (PRESENT(scale)) scale(offset+1) = aScale
-            params(offset+2) = mu(1,2)
-            IF (PRESENT(scale)) scale(offset+2) = muScale
-          CASE ("GAUSSIAN")
-            params(offset+1) = A(1,2)
-            IF (PRESENT(scale)) scale(offset+1) = aScale
-            params(offset+2) = eta(1,2)
-            IF (PRESENT(scale)) scale(offset+2) = etaScale
-
-        END SELECT
-
-      ENDIF
-
-    END SUBROUTINE LinearizeParameters
-
-!*
-
-   SUBROUTINE DelinearizeParameters(params,alpha,A,mu,eta,optAlpha,optCoupling,couplingType)
-
-     ! Knows the rules to take a vector of parameters and return them to their correct positions in properly-shaped arrays
-
-     IMPLICIT NONE
-     LOGICAL, INTENT(IN) :: optAlpha, optCoupling
-     CHARACTER(*), INTENT(IN) :: couplingType
-     REAL(8), INTENT(IN) :: params(:)
-     REAL(8), INTENT(OUT) :: alpha(2), A(2,2), mu(2,2), eta(2,2)
-     INTEGER :: offset
-
-      offset = 0
-      IF (optAlpha .EQV. .TRUE.) THEN
-        offset = 1
-        alpha(2) = params(1)
-      ENDIF
-
-      IF (optCoupling .EQV. .TRUE.) THEN
-
-        SELECT CASE (TRIM(ADJUSTL(couplingType)))
-
-          CASE ("CONSTANT")
-            A(1,2)   = params(offset+1)
-          CASE ("EXPONENT")
-            A(1,2)   = params(offset+1)
-            mu(1,2)  = params(offset+2)
-          CASE ("GAUSSIAN")
-            A(1,2)   = params(offset+1)
-            eta(1,2) = params(offset+2)
-
-        END SELECT
-
-      ENDIF
-
-   END SUBROUTINE DelinearizeParameters
 
 !*
 
@@ -276,5 +189,132 @@ MODULE EVBParameters
     END FUNCTION isCouplingTypeSupported
 
 !*
+
+  REAL(8) FUNCTION objectFunction(variables)
+
+    ! #DES: This is the part that changes per-application. I am massively cheating by 
+    !       just importing eveything here for now.
+
+    USE Input, ONLY : dGTS, dGPS, mask, Nbins, minPop
+    USE Data, ONLY : energyGap, groundStateEnergy, mappingEnergies, RecomputeDependentData
+    USE Analysis, ONLY : FepUsFreeEnergies
+    USE FreeEnergy, ONLY : FepUS, ScanFepUS, Histogram, computeFEPProfile
+
+    IMPLICIT NONE
+
+    REAL(8), INTENT(IN) :: variables(:)
+
+    INTEGER :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
+    REAL(8) :: binMidpoints(Nbins)
+    REAL(8) :: alpha(2), A(2,2), mu(2,2), eta(2,2)
+    REAL(8) :: relative(3), binGg(Nbins)
+    REAL(8) :: G_FEP(SIZE(energyGap,1))
+    LOGICAL :: printBin(Nbins)
+
+    ! For EVB-parameterisation, the variables are alpha and the parameters of the off-diagonals
+    ! and the object function must depend on the FEP/US free energy changes
+
+    CALL DelinearizeParameters(variables(:),alpha(:),A(:,:),mu(:,:),eta(:,:),optAlpha,optCoupling,couplingType)
+
+    CALL RecomputeDependentData(alpha,A,mu,eta)
+    CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:,1),mask(:,:),profile=G_FEP)
+    CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
+    CALL FepUS(mappingEnergies(:,:,:,1),groundStateEnergy(:,:),G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
+    CALL ScanFepUs(binMidpoints(:),binGg(:),mask=printBin,stationaryPoints=relative)
+
+    relative(:) = relative(:) - relative(1)
+
+    objectFunction = 0.0d0
+    IF (optAlpha    .EQV. .TRUE.) objectFunction = objectFunction + (relative(3) - dGPS)**2.0d0
+    IF (optCoupling .EQV. .TRUE.) objectFunction = objectFunction + (relative(2) - dGTS)**2.0d0
+    objectFunction = SQRT(objectFunction) ! costs time but gives object function units of energy
+
+  END FUNCTION objectFunction
+
+!*
+
+    SUBROUTINE LinearizeParameters(alpha,A,mu,eta,optAlpha,optCoupling,couplingType,params,scale)
+
+      ! Knows the rules to take the parameter arrays and convert to a vector for optimisation
+
+      IMPLICIT NONE
+      REAL(8), INTENT(IN)      :: alpha(:), A(:,:), mu(:,:), eta(:,:)
+      LOGICAL, INTENT(IN)      :: optAlpha, optCoupling
+      CHARACTER(*), INTENT(IN) :: couplingType
+
+      REAL(8), INTENT(OUT)     :: params(:)
+      REAL(8), INTENT(OUT), OPTIONAL :: scale(:)
+
+      INTEGER :: offset
+
+      offset = 0
+      IF (optAlpha .EQV. .TRUE.) THEN
+        offset = 1
+        params(1) = alpha(2)
+        IF (PRESENT(scale)) scale(1) = alphaScale
+      ENDIF
+
+      IF (optCoupling .EQV. .TRUE.) THEN
+
+        SELECT CASE (TRIM(ADJUSTL(couplingType)))
+
+          CASE ("CONSTANT")
+            params(offset+1) = A(1,2)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+          CASE ("EXPONENT")
+            params(offset+1) = A(1,2)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+            params(offset+2) = mu(1,2)
+            IF (PRESENT(scale)) scale(offset+2) = muScale
+          CASE ("GAUSSIAN")
+            params(offset+1) = A(1,2)
+            IF (PRESENT(scale)) scale(offset+1) = aScale
+            params(offset+2) = eta(1,2)
+            IF (PRESENT(scale)) scale(offset+2) = etaScale
+
+        END SELECT
+
+      ENDIF
+
+    END SUBROUTINE LinearizeParameters
+
+!*
+
+   SUBROUTINE DelinearizeParameters(params,alpha,A,mu,eta,optAlpha,optCoupling,couplingType)
+
+     ! Knows the rules to take a vector of parameters and return them to their correct positions in properly-shaped arrays
+
+     IMPLICIT NONE
+     LOGICAL, INTENT(IN) :: optAlpha, optCoupling
+     CHARACTER(*), INTENT(IN) :: couplingType
+     REAL(8), INTENT(IN) :: params(:)
+     REAL(8), INTENT(OUT) :: alpha(2), A(2,2), mu(2,2), eta(2,2)
+     INTEGER :: offset
+
+      offset = 0
+      IF (optAlpha .EQV. .TRUE.) THEN
+        offset = 1
+        alpha(2) = params(1)
+      ENDIF
+
+      IF (optCoupling .EQV. .TRUE.) THEN
+
+        SELECT CASE (TRIM(ADJUSTL(couplingType)))
+
+          CASE ("CONSTANT")
+            A(1,2)   = params(offset+1)
+          CASE ("EXPONENT")
+            A(1,2)   = params(offset+1)
+            mu(1,2)  = params(offset+2)
+          CASE ("GAUSSIAN")
+            A(1,2)   = params(offset+1)
+            eta(1,2) = params(offset+2)
+
+        END SELECT
+
+      ENDIF
+
+   END SUBROUTINE DelinearizeParameters
+
 
 END MODULE EVBParameters

@@ -65,7 +65,7 @@ MODULE DownhillSimplex
 
   SUBROUTINE GenerateSimplex(guess,lambda,logUnit,simplex)
 
-    USE ObjectFunctions, ONLY : objectFunction
+    USE EVBParameters, ONLY : objectFunction
     IMPLICIT NONE
 
     REAL(8), INTENT(IN)  :: guess(:), lambda(:)
@@ -98,7 +98,7 @@ MODULE DownhillSimplex
 
   SUBROUTINE NelderMead(initialSimplex,logUnit,debug,optimum,optValue,converged)
 
-    USE ObjectFunctions, ONLY : objectFunction
+    USE EVBParameters, ONLY : objectFunction
     IMPLICIT NONE
 
     REAL(8), INTENT(IN)  :: initialSimplex(:,:) ! m x n, each row is an n-dimensional vector
