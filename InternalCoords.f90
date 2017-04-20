@@ -23,12 +23,27 @@ MODULE InternalCoords
 
 !*
 
-  PURE REAL(8) FUNCTION angle(x,y,z)
+!  PURE REAL(8) FUNCTION angle(x,y,z)
 
-    IMPLICIT NONE
+!    IMPLICIT NONE
+!    REAL(4), INTENT(IN) :: x(3), y(3), z(3)
+!    REAL(4) :: diff(3))
 
-    angle = 0.0d0
+!    angle = 0.0d0
+   
+    
 
-  END FUNCTION angle
+!  END FUNCTION angle
+
+!*
+
+!  PURE REAL(8) FUNCTION dot_product(a,b)
+
+!    IMPLICIT NONE
+!    REAL(8), INTENT(IN) :: a(:), b(:)
+
+!    dot_product = SUM(a(:)*b(:))
+
+!  END FUNCTION
 
 END MODULE InternalCoords
