@@ -13,9 +13,10 @@ MODULE Util
       USE Input, ONLY : ReadInput
 
       IMPLICIT NONE
+      LOGICAL, PARAMETER :: readCoords = .FALSE.
 
         CALL CreateLogFile()
-        CALL ReadInput()
+        CALL ReadInput(readCoords)
 
     END SUBROUTINE StartUp
 

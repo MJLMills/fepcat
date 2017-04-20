@@ -5,7 +5,7 @@ MODULE Analysis
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Test2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState, FepUsFreeEnergies
+  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Fepus2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState, FepUsFreeEnergies
 
   CONTAINS
 
@@ -355,33 +355,31 @@ MODULE Analysis
 
 !*
 
-    !geomRC is the reaction coordinate to be used. It is currently hard-coded for evaluation
+    SUBROUTINE Fepus2D(geomRC,groundStateEnergy,mappingEnergies,mask,N,minPop,unit)
 
-    SUBROUTINE Test2D()
+      ! #DES: Compute and print the 2D free energy surface
 
-      ! This was a testing routine for the 2D plot, using the energy gap as both r1 and r2
-      ! Should be cannibalized to produce the actual FEP/US driver that calls the correct histogram routine for D.
-
-      USE Data, ONLY : geomRC, mappingEnergies, groundStateEnergy
-      USE Input, ONLY : mask, minPop
-      USE FreeEnergy, ONLY : Histogram2D, ComputeFEPIncrements, FepUs
+      USE FreeEnergy, ONLY : Histogram2D, ComputeFEPProfile, FepUs
       USE FileIO, ONLY : OpenFile, CloseFile
       USE Output, ONLY : WriteCsv2D
 
       IMPLICIT NONE
 
-      INTEGER, PARAMETER :: N = 500, unit = 53
+      REAL(8), INTENT(IN) :: geomRC(:,:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
+      LOGICAL, INTENT(IN) :: mask(:,:)
+      INTEGER, INTENT(IN) :: N, minPop, unit
 
       INTEGER :: binIndices(SIZE(geomRC,2),SIZE(geomRC,3))
       INTEGER :: binPopulations(N**SIZE(geomRC,1),SIZE(geomRC,2))
       REAL(8) :: binCoordinates(N**SIZE(geomRC,1),SIZE(geomRC,1))
 
-      REAL(8) :: G_FEP(SIZE(geomRC,2)), dG_FEP(SIZE(geomRC,2)-1)
+      REAL(8) :: G_FEP(SIZE(geomRC,2))
       REAL(8) :: binG(N**SIZE(geomRC,1)), dGg(N**SIZE(geomRC,1),SIZE(geomRC,2))
+      LOGICAL :: printBin(N)
 
-      REAL(8) :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1)  ! one row for each bin to be printed, one column for each coordinate and one for the free energy
-      CHARACTER(4) :: head(SIZE(geomRC,1)+1) ! heading for each coord, then the free energy
-      INTEGER :: bin, fepstep, dim
+      REAL(8)      :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1)  ! one row for each bin to be printed, one column for each coordinate and one for the free energy
+      CHARACTER(4) :: head(SIZE(geomRC,1)+1)                 ! heading for each coord, then the free energy
+      INTEGER      :: bin, dim, count
       CHARACTER(1) :: dimString
 
       CALL OpenFile(unit,"fepus2D.csv","write")
@@ -390,30 +388,28 @@ MODULE Analysis
         WRITE(dimString,'(I1)') dim
         head(dim) = "R"//dimString
       ENDDO
-      head(SIZE(geomRC,1)+1) = "Esol" !change later - hack for contour script
+      head(SIZE(geomRC,1)+1) = "dG" !change later - hack for contour script
 
+      CALL ComputeFEPProfile(1,SIZE(geomRC,2),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP)
       CALL Histogram2D(geomRC,mask,N,binIndices,binPopulations,binCoordinates)
+      CALL FepUs(mappingEnergies(:,:,:),groundStateEnergy,G_FEP,binPopulations,binIndices,PMF2Dout=dGg,PMF1D=binG,minPop=minPop,useBin=printBin)
 
-      !This is the same as the 1D case - replace with ComputeFEPProfile
-      CALL ComputeFEPIncrements(1,SIZE(geomRC,2),mappingEnergies(:,:,:,1),mask(:,:),profile=dG_FEP)
-      G_FEP(:) = 0.0d0
-      DO fepstep = 2, SIZE(geomRC,2)
-        G_FEP(fepstep) = SUM(dG_FEP(1:fepstep-1))
-      ENDDO
-
-      CALL FepUs(mappingEnergies(:,:,:,1),groundStateEnergy,G_FEP,binPopulations,binIndices,PMF2Dout=dGg,PMF1D=binG,minPop=minPop)
-
+      count = 0
       DO bin = 1, N**SIZE(geomRC,1)
-        DO dim = 1, SIZE(geomRC,1)
-          output(bin,dim) = binCoordinates(bin,dim)
-        ENDDO
-        output(bin,SIZE(geomRC,1)+1) = binG(bin)
+        IF (printBin(bin) .EQV. .TRUE.) THEN
+          count = count + 1
+          DO dim = 1, SIZE(geomRC,1)
+            output(count,dim) = binCoordinates(count,dim)
+          ENDDO
+          output(count,SIZE(geomRC,1)+1) = binG(bin)
+        ENDIF
       ENDDO
 
-      CALL WriteCsv2D(head,output,unit)
+      CALL WriteCsv2D(head,output(1:count,:),unit)
       CALL CloseFile(unit)
 
-    END SUBROUTINE Test2D
+    END SUBROUTINE Fepus2D
+
 !*
 
     !This is the initial convergence check in terms of the energy.

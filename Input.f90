@@ -24,10 +24,10 @@ MODULE Input
   ! RC = (rcCoeffA * E_A) + (rcCoeffB * E_B)
 
   NAMELIST /settings/ nStates, stateA, stateB, nFepSteps, nSkip, stepTS, nBins, minPop, dRC, fileBase, trajecBase, &
-                      temperature, rcCoeffA, rcCoeffB, useEnergyGapCoupling, readTrajectory, dGTS, dGPS
+                      temperature, rcCoeffA, rcCoeffB, useEnergyGapCoupling, dGTS, dGPS
   INTEGER :: nFepSteps, nStates, nSkip, stateA, stateB, stepTS, nBins, minPop, dRC
   REAL(8) :: temperature, rcCoeffA, rcCoeffB, dGTS, dGPS
-  LOGICAL :: useEnergyGapCoupling, readTrajectory
+  LOGICAL :: useEnergyGapCoupling
   CHARACTER(100) :: fileBase, trajecBase
 
   ! #DES: The stateEnergy and coeffs arrays hold all of the simulation data (irrespective of nSkip, nTimesteps)
@@ -94,12 +94,13 @@ MODULE Input
 
 !*
 
-    SUBROUTINE ReadInput
+    SUBROUTINE ReadInput(readCoords)
 
       ! #DES: Master routine for reading all needed input from files
 
       USE Log, ONLY : logUnit
       IMPLICIT NONE
+      LOGICAL, INTENT(IN) :: readCoords
 
       CALL ProcessNamelist(logUnit)
       CALL ReadEnergyTypes(logUnit)
@@ -111,7 +112,7 @@ MODULE Input
       CALL ReadConvergenceParameters(logUnit)
       CALL WriteConvergenceParameters(logUnit)
       CALL ReadFormattedEnergyFiles(logUnit)
-      IF (readTrajectory .EQV. .TRUE.) CALL ReadCoordinateFiles(logUnit)
+      IF (readCoords .EQV. .TRUE.) CALL ReadCoordinateFiles(logUnit)
 
     END SUBROUTINE ReadInput
 
@@ -403,7 +404,6 @@ MODULE Input
       minPop     =  1
       fileBase   =  "EnergyFile"
       useEnergyGapCoupling = .TRUE.
-      readTrajectory = .FALSE.
       dGTS = HUGE(0.0d0)
       dGPS = HUGE(0.0d0)
 
@@ -459,19 +459,11 @@ MODULE Input
     WRITE(logUnit,'(A,I6)')   "Number of FEP/US Bins        : ", nBins
     WRITE(logUnit,'(A,I6)')   "Population Threshold of Bins : ", minPop
     WRITE(logUnit,'(A,L6)')   "Use Energy Gap for Coupling  : ", useEnergyGapCoupling
-    WRITE(logUnit,'(A,L6)')   "Read Trajectories            : ", readTrajectory
 
     IF (targetsPresent .EQV. .TRUE.) THEN
       WRITE(logUnit,'(A,F6.2)') "Target Free Energy RS -> TS  : ", dGTS
       WRITE(logUnit,'(A,F6.2)') "Target Free Energy RS -> PS  : ", dGPS
       WRITE(logUnit,*)
-    ENDIF
-
-    IF (readTrajectory .EQV. .TRUE.) THEN
-      WRITE(logUnit,'(A29,A)')    "Trajectory File Prefix       : ", TRIM(ADJUSTL(trajecBase))
-      WRITE(logUnit,'(A29,I6)')   "Dimensionality of RC         : ", dRC
-    ELSE
-      WRITE(logUnit,'(A)') "Values of trajecBase and dRC will not be used"
     ENDIF
 
     WRITE(logUnit,*)

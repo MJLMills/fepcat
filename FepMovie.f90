@@ -7,7 +7,7 @@ PROGRAM FepMovie
   IMPLICIT NONE
 
     CALL Startup()
-    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.)
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.)
     CALL Driver()
     CALL CleanUp()  
 

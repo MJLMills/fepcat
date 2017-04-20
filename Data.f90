@@ -64,28 +64,40 @@ MODULE Data
     ! dRC - dimensionality of the reaction coordinate
     ! RCAtoms(dRC,2) - atoms involved in each RC distance
 
-    ! The definition of the reaction coordinate has to be done in the Input module.
-    SUBROUTINE ComputeGeometricRC()
+    SUBROUTINE ComputeGeometricRC(coordTypes,coordIndices)
 
       USE Input, ONLY : trajectory
       USE InternalCoords, ONLY : distance
       USE StatisticalFunctions, ONLY : mean
 
       IMPLICIT NONE
-      INTEGER :: x, y, z !delta coord, rC-Cl1 - rC-Cl2
-      REAL(8) :: r1, r2
-      INTEGER :: step, timestep
-
-      x = 1
-      y = 37   ! 40
-      z = 4277 ! 59
+      INTEGER, INTENT(IN) :: coordIndices(:,:)
+      CHARACTER(*), INTENT(IN) :: coordTypes(:)
+      INTEGER :: step, timestep, coord
 
       DO step = 1, SIZE(trajectory,1)
         DO timestep = 1, SIZE(trajectory,4)
-          r1 = distance(trajectory(step,:,x,timestep),trajectory(step,:,y,timestep)) !1,2
-          r2 = distance(trajectory(step,:,x,timestep),trajectory(step,:,z,timestep)) !1,3
-          geomRC(1,step,timestep) = r2
-          geomRC(2,step,timestep) = r1
+          DO coord = 1, SIZE(coordTypes)
+
+            SELECT CASE (TRIM(ADJUSTL(coordTypes(coord))))
+
+              CASE ("DISTANCE")
+                geomRC(coord,step,timestep) = distance(trajectory(step,:,coordIndices(coord,1),timestep), &
+                                            &          trajectory(step,:,coordIndices(coord,2),timestep))
+!              CASE ("ANGLE")
+!                 geomRC(coord,step,timestep) =  angle(trajectory(step,:,coordIndices(coord,1),timestep), &
+!                                             &        trajectory(step,:,coordIndices(coord,2),timestep), &
+!                                             &        trajectory(step,:,coordIndices(coord,3),timestep))
+!              CASE ("TORSION")
+!                 geomRC(coord,step,timestep) =  angle(trajectory(step,:,coordIndices(coord,1),timestep), &
+!                                             &        trajectory(step,:,coordIndices(coord,2),timestep), &
+!                                             &        trajectory(step,:,coordIndices(coord,3),timestep), &
+!                                             &        trajectory(step,:,coordIndices(coord,4),timestep))
+              CASE DEFAULT
+                STOP "Unrecognised coordinate type in computeGeom"
+            END SELECT
+
+          ENDDO
         ENDDO
       ENDDO
 
@@ -108,15 +120,16 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeDerivedData(logUnit,doTiming)
+    SUBROUTINE ComputeDerivedData(logUnit,doTiming,readCoords)
 
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
 
-      USE Input, ONLY : alpha, readTrajectory, couplingConstant, couplingGaussExpFactor, couplingExpExpFactor
+      USE Input, ONLY : alpha, couplingConstant, couplingGaussExpFactor, couplingExpExpFactor
+      USE Input2D, ONLY : coordTypes, coordIndices
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
-      LOGICAL, INTENT(IN) :: doTiming
+      LOGICAL, INTENT(IN) :: doTiming, readCoords
       REAL(8) :: time(3), t1, t2, diff
 
       WRITE(logUnit,'(A)') "Computing Data Derived from Input"; WRITE(logUnit,*)
@@ -143,7 +156,7 @@ MODULE Data
 
       ! This should only be called when trajectory information is available
       ! Needs to have an input file for defining coordinates too
-      IF (readTrajectory) CALL ComputeGeometricRC()
+      IF (readCoords) CALL ComputeGeometricRC(coordTypes,coordIndices)
       
       IF (doTiming) THEN
         CALL CPU_TIME(t2); diff = t2 - t1

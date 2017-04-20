@@ -21,4 +21,27 @@ MODULE InternalCoords
 
     END FUNCTION distance
 
+!*
+
+  SUBROUTINE ReadReactionCoordinates()
+
+    USE FileIO, ONLY : OpenFile, CloseFile
+    IMPLICIT NONE
+    INTEGER, PARAMETER :: unit = 22
+    LOGICAL :: success
+    CHARACTER(8) :: type
+    INTEGER :: a, b, ios
+
+    CALL OpenFile(unit,"rc.dat","READ",success)
+    IF (success .EQV. .TRUE.) THEN
+
+      DO WHILE (ios == 0)
+        READ(unit,IOSTAT=ios) type, a, b
+      ENDDO
+
+      CALL CloseFile(unit)
+    ENDIF
+
+  END SUBROUTINE ReadReactioncoordinates
+
 END MODULE InternalCoords
