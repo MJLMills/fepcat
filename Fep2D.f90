@@ -1,5 +1,10 @@
 PROGRAM Fep2D
 
+  ! #DES: Performs the FEP/US procedure for an n-dimensional reaction coordinate
+  !       composed of geometric collective variables.
+  !       Currently only supports 2D coordinates and interatomic distances.
+
+  LOGICAL, PARAMETER :: readCoords = .TRUE.
   IMPLICIT NONE
 
   CALL Startup()
@@ -20,9 +25,9 @@ PROGRAM Fep2D
       IMPLICIT NONE
 
       CALL CreateLogFile()
-      CALL ReadInput(readCoords=.TRUE.)
+      CALL ReadInput(readCoords)
       CALL DetermineCollectiveVariables(logUnit)
-      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.TRUE.)
+      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords)
 
     END SUBROUTINE Startup
 
