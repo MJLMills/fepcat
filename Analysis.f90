@@ -355,7 +355,7 @@ MODULE Analysis
 
 !*
 
-    SUBROUTINE Fepus2D(geomRC,groundStateEnergy,mappingEnergies,mask,N,minPop,unit,logUnit)
+    SUBROUTINE Fepus2D(geomRC,groundStateEnergy,mappingEnergies,mask,N,minPop,unit)
 
       ! #DES: Compute and print the 2D free energy surface
 
@@ -367,7 +367,7 @@ MODULE Analysis
 
       REAL(8), INTENT(IN) :: geomRC(:,:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
-      INTEGER, INTENT(IN) :: N, minPop, unit, logUnit
+      INTEGER, INTENT(IN) :: N, minPop, unit
 
       INTEGER :: binIndices(SIZE(geomRC,2),SIZE(geomRC,3))
       INTEGER :: binPopulations(N**SIZE(geomRC,1),SIZE(geomRC,2))
@@ -381,11 +381,6 @@ MODULE Analysis
       CHARACTER(4) :: head(SIZE(geomRC,1)+1)                     ! heading for each coord, then the free energy
       INTEGER      :: dim, bin, count
       CHARACTER(1) :: dimString
-
-      WRITE(logUnit,'(A)') "Computing 2-Dimensional PMF"
-
-      CALL OpenFile(unit,"fepus2D.csv","write")
-
 
       DO dim = 1, SIZE(geomRC,1)
         WRITE(dimString,'(I1)') dim
@@ -412,9 +407,6 @@ MODULE Analysis
       ENDDO
 
       CALL WriteCsv2D(head,output(1:count,:),unit)
-      CALL CloseFile(unit)
-
-      WRITE(logUnit,'(A)') "Finished Computing 2-Dimensional PMF"
 
     END SUBROUTINE Fepus2D
 

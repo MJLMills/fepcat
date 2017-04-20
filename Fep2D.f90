@@ -2,9 +2,7 @@ PROGRAM Fep2D
 
   ! #DES: Performs the FEP/US procedure for an n-dimensional reaction coordinate
   !       composed of geometric collective variables.
-  !       Currently only supports 2D coordinates and interatomic distances.
 
-  LOGICAL, PARAMETER :: readCoords = .TRUE.
   IMPLICIT NONE
 
   CALL Startup()
@@ -23,11 +21,12 @@ PROGRAM Fep2D
       USE InputCollectiveVariables, ONLY : DetermineCollectiveVariables
 
       IMPLICIT NONE
+      LOGICAL, PARAMETER :: readCoords = .TRUE.
 
       CALL CreateLogFile()
-      CALL ReadInput(readCoords)
+      CALL ReadInput(readCoords=readCoords)
       CALL DetermineCollectiveVariables(logUnit)
-      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords)
+      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=readCoords)
 
     END SUBROUTINE Startup
 
@@ -53,14 +52,18 @@ PROGRAM Fep2D
 
     SUBROUTINE Run2D()
 
+      USE Analysis, ONLY : Fepus2D
+      USE FIleIO,   ONLY : OpenFile, CloseFile
       USE Data,     ONLY : geomRC, mappingEnergies, groundStateEnergy
       USE Input,    ONLY : mask, minPop, nBins
-      USE Analysis, ONLY : Fepus2D
-      USE Log,      ONLY : logUnit
 
       IMPLICIT NONE
+      INTEGER, PARAMETER :: outUnit = 19
+      CHARACTER(11), PARAMETER :: outFileName = "fepus2D.csv"
 
-      CALL Fepus2D(geomRC,groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),nBins,minPop,22,logUnit)
+      CALL OpenFile(outUnit,outFileName,"write")
+      CALL Fepus2D(geomRC(:,:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),nBins,minPop,outUnit)
+      CALL CloseFile(outUnit)
 
     END SUBROUTINE Run2D
 
