@@ -20,7 +20,8 @@ MODULE Data
       ! #DES: Allocate and zero memory for all derived data
       ! mappingEnergies, indices are - type, dynamicsPotential, mappingPotential, time
 
-      USE Input, ONLY : nStates, nFepSteps, maxTimesteps, nEnergyTypes, dRC
+      USE Input, ONLY : nStates, nFepSteps, maxTimesteps, nEnergyTypes
+      USE InputCollectiveVariables, ONLY : dRC
 
       IMPLICIT NONE
       REAL(8), INTENT(OUT), OPTIONAL :: time
@@ -61,9 +62,6 @@ MODULE Data
 
 !*
 
-    ! dRC - dimensionality of the reaction coordinate
-    ! RCAtoms(dRC,2) - atoms involved in each RC distance
-
     SUBROUTINE ComputeGeometricRC(coordTypes,coordIndices)
 
       USE Input, ONLY : trajectory
@@ -71,9 +69,9 @@ MODULE Data
       USE StatisticalFunctions, ONLY : mean
 
       IMPLICIT NONE
-      INTEGER, INTENT(IN) :: coordIndices(:,:)
+      INTEGER,      INTENT(IN) :: coordIndices(:,:)
       CHARACTER(*), INTENT(IN) :: coordTypes(:)
-      INTEGER :: step, timestep, coord
+      INTEGER                  :: step, timestep, coord
 
       DO step = 1, SIZE(trajectory,1)
         DO timestep = 1, SIZE(trajectory,4)
@@ -89,10 +87,10 @@ MODULE Data
 !                                             &        trajectory(step,:,coordIndices(coord,2),timestep), &
 !                                             &        trajectory(step,:,coordIndices(coord,3),timestep))
 !              CASE ("TORSION")
-!                 geomRC(coord,step,timestep) =  angle(trajectory(step,:,coordIndices(coord,1),timestep), &
-!                                             &        trajectory(step,:,coordIndices(coord,2),timestep), &
-!                                             &        trajectory(step,:,coordIndices(coord,3),timestep), &
-!                                             &        trajectory(step,:,coordIndices(coord,4),timestep))
+!                 geomRC(coord,step,timestep) = torsion(trajectory(step,:,coordIndices(coord,1),timestep), &
+!                                             &         trajectory(step,:,coordIndices(coord,2),timestep), &
+!                                             &         trajectory(step,:,coordIndices(coord,3),timestep), &
+!                                             &         trajectory(step,:,coordIndices(coord,4),timestep))
               CASE DEFAULT
                 STOP "Unrecognised coordinate type in computeGeom"
             END SELECT
@@ -126,7 +124,7 @@ MODULE Data
       ! As this is potentially expensive, can time each piece
 
       USE Input, ONLY : alpha, couplingConstant, couplingGaussExpFactor, couplingExpExpFactor
-      USE Input2D, ONLY : coordTypes, coordIndices
+      USE InputCollectiveVariables, ONLY : coordTypes, coordIndices
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
       LOGICAL, INTENT(IN) :: doTiming, readCoords

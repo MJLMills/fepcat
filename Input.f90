@@ -23,9 +23,9 @@ MODULE Input
   ! rcCoeffA and rcCoeffB are used to construct a reaction coordinate from the energy difference
   ! RC = (rcCoeffA * E_A) + (rcCoeffB * E_B)
 
-  NAMELIST /settings/ nStates, stateA, stateB, nFepSteps, nSkip, stepTS, nBins, minPop, dRC, fileBase, trajecBase, &
+  NAMELIST /settings/ nStates, stateA, stateB, nFepSteps, nSkip, stepTS, nBins, minPop, fileBase, trajecBase, &
                       temperature, rcCoeffA, rcCoeffB, useEnergyGapCoupling, dGTS, dGPS
-  INTEGER :: nFepSteps, nStates, nSkip, stateA, stateB, stepTS, nBins, minPop, dRC
+  INTEGER :: nFepSteps, nStates, nSkip, stateA, stateB, stepTS, nBins, minPop
   REAL(8) :: temperature, rcCoeffA, rcCoeffB, dGTS, dGPS
   LOGICAL :: useEnergyGapCoupling
   CHARACTER(100) :: fileBase, trajecBase
@@ -393,7 +393,6 @@ MODULE Input
       stateB      = 0
       nFepSteps   = 0
       stepTS      = 0
-      dRC         = 0
       temperature = -1.0d0
 
       ! useable defaults
