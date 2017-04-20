@@ -21,4 +21,14 @@ MODULE InternalCoords
 
     END FUNCTION distance
 
+!*
+
+  PURE REAL(8) FUNCTION angle(x,y,z)
+
+    IMPLICIT NONE
+
+    angle = 0.0d0
+
+  END FUNCTION angle
+
 END MODULE InternalCoords
