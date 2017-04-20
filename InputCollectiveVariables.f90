@@ -74,7 +74,7 @@ MODULE InputCollectiveVariables
           j = 0; ios2 = 0
           DO WHILE (ios2 == 0) ! once an index read fails, go to next
             j = j + 1
-            READ(unit,'(I4)',IOSTAT=ios2,ADVANCE='NO') coordIndices(i,j)
+            READ(unit,'(I6)',IOSTAT=ios2,ADVANCE='NO') coordIndices(i,j)
           ENDDO
         ENDIF
 
