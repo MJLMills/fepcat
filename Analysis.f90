@@ -348,58 +348,64 @@ MODULE Analysis
 
       CALL WriteCSV2D(head,out,6) !to stdout for now
 
-      DEALLOCATE(head)
-      DEALLOCATE(out)
+      IF (ALLOCATED(head)) DEALLOCATE(head)
+      IF (ALLOCATED(out))   DEALLOCATE(out)
 
     END SUBROUTINE ReportMeans
 
 !*
 
-    SUBROUTINE Fepus2D(geomRC,groundStateEnergy,mappingEnergies,mask,N,minPop,unit)
+    SUBROUTINE Fepus2D(geomRC,groundStateEnergy,mappingEnergies,mask,N,minPop,unit,logUnit)
 
       ! #DES: Compute and print the 2D free energy surface
 
       USE FreeEnergy, ONLY : Histogram2D, ComputeFEPProfile, FepUs
-      USE FileIO, ONLY : OpenFile, CloseFile
-      USE Output, ONLY : WriteCsv2D
+      USE FileIO,     ONLY : OpenFile, CloseFile
+      USE Output,     ONLY : WriteCsv2D
 
       IMPLICIT NONE
 
       REAL(8), INTENT(IN) :: geomRC(:,:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
-      INTEGER, INTENT(IN) :: N, minPop, unit
+      INTEGER, INTENT(IN) :: N, minPop, unit, logUnit
 
       INTEGER :: binIndices(SIZE(geomRC,2),SIZE(geomRC,3))
       INTEGER :: binPopulations(N**SIZE(geomRC,1),SIZE(geomRC,2))
       REAL(8) :: binCoordinates(N**SIZE(geomRC,1),SIZE(geomRC,1))
 
       REAL(8) :: G_FEP(SIZE(geomRC,2))
-      REAL(8) :: binG(N**SIZE(geomRC,1)), dGg(N**SIZE(geomRC,1),SIZE(geomRC,2))
-      LOGICAL :: printBin(N)
+      REAL(8) :: binG(N**SIZE(geomRC,1))
+      LOGICAL :: printBin(N**SIZE(geomRC,1))
 
-      REAL(8)      :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1)  ! one row for each bin to be printed, one column for each coordinate and one for the free energy
-      CHARACTER(4) :: head(SIZE(geomRC,1)+1)                 ! heading for each coord, then the free energy
-      INTEGER      :: bin, dim, count
+      REAL(8)      :: output(N**SIZE(geomRC,1),SIZE(geomRC,1)+1) ! one row for each bin to be printed, one column for each coordinate and one for the free energy
+      CHARACTER(4) :: head(SIZE(geomRC,1)+1)                     ! heading for each coord, then the free energy
+      INTEGER      :: dim, bin, count
       CHARACTER(1) :: dimString
 
+      WRITE(logUnit,'(A)') "Computing 2-Dimensional PMF"
+
       CALL OpenFile(unit,"fepus2D.csv","write")
+
 
       DO dim = 1, SIZE(geomRC,1)
         WRITE(dimString,'(I1)') dim
         head(dim) = "R"//dimString
       ENDDO
-      head(SIZE(geomRC,1)+1) = "dG" !change later - hack for contour script
+      head(SIZE(geomRC,1)+1) = "dG"
 
+      G_FEP = 0.0d0
       CALL ComputeFEPProfile(1,SIZE(geomRC,2),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP)
-      CALL Histogram2D(geomRC,mask,N,binIndices,binPopulations,binCoordinates)
-      CALL FepUs(mappingEnergies(:,:,:),groundStateEnergy,G_FEP,binPopulations,binIndices,PMF2Dout=dGg,PMF1D=binG,minPop=minPop,useBin=printBin)
+      CALL Histogram2D(geomRC(:,:,:),mask(:,:),N,binIndices(:,:),binPopulations(:,:),binCoordinates(:,:))
+      printBin(:) = .FALSE.
+
+      CALL FepUs(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP(:),binPopulations(:,:),binIndices(:,:),PMF1D=binG,minPop=minPop,useBin=printBin(:))
 
       count = 0
       DO bin = 1, N**SIZE(geomRC,1)
         IF (printBin(bin) .EQV. .TRUE.) THEN
           count = count + 1
           DO dim = 1, SIZE(geomRC,1)
-            output(count,dim) = binCoordinates(count,dim)
+            output(count,dim) = binCoordinates(bin,dim)
           ENDDO
           output(count,SIZE(geomRC,1)+1) = binG(bin)
         ENDIF
@@ -407,6 +413,8 @@ MODULE Analysis
 
       CALL WriteCsv2D(head,output(1:count,:),unit)
       CALL CloseFile(unit)
+
+      WRITE(logUnit,'(A)') "Finished Computing 2-Dimensional PMF"
 
     END SUBROUTINE Fepus2D
 

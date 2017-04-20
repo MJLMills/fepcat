@@ -53,7 +53,8 @@ CONTAINS
 
     Coordinates = data
 
-    DEALLOCATE(data)
+    IF (ALLOCATED(data)) DEALLOCATE(data)
+
     CLOSE(dcdUnit)
 
   END SUBROUTINE ReadDCD

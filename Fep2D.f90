@@ -1,7 +1,5 @@
 PROGRAM Fep2D
 
-  USE Log, ONLY  : logUnit, createLogFile
-
   IMPLICIT NONE
 
   CALL Startup()
@@ -18,7 +16,6 @@ PROGRAM Fep2D
       USE Data,  ONLY : ComputeDerivedData
       USE Input, ONLY : ReadInput
       USE InputCollectiveVariables, ONLY : DetermineCollectiveVariables
-
 
       IMPLICIT NONE
 
@@ -54,10 +51,11 @@ PROGRAM Fep2D
       USE Data,     ONLY : geomRC, mappingEnergies, groundStateEnergy
       USE Input,    ONLY : mask, minPop, nBins
       USE Analysis, ONLY : Fepus2D
+      USE Log,      ONLY : logUnit
 
       IMPLICIT NONE
 
-      CALL Fepus2D(geomRC,groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),nBins,minPop,logUnit)
+      CALL Fepus2D(geomRC,groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),nBins,minPop,22,logUnit)
 
     END SUBROUTINE Run2D
 
