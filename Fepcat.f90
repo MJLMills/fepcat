@@ -45,7 +45,7 @@ PROGRAM Fepcat
       CALL FepUsGroundState(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,outUnit)
       CALL CloseFile(outUnit)
 
-      CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.)
+      CALL FepUsFreeEnergies(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask(:,:),Nbins,minPop,.TRUE.,6)
 
 !      CALL OptimizeEVBParameters(6,.TRUE.,.TRUE.,"CONSTANT")
 

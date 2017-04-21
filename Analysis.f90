@@ -1,11 +1,23 @@
 MODULE Analysis
 
-  ! #DES: Routines for applying analysis to the input/derived data
+  ! #DES: Routines for applying analysis to the input/derived data and writing the results
+  !       to data files for visualisation. These routines should USE no data, only procedures.
+  !       They should instead accept all data and options as arguments. For the sake of consistency
+  !       each should also accept an already open output unit to write to.
 
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: AnalyzeSimulationConvergence, WriteMeanEnergyBreakdown, DetailedFEP, ReportMeans, Fepus2D, FepBreakdown, RunLinearResponse, AnalyzeFep, FepUsGroundState, FepUsFreeEnergies
+  PUBLIC :: AnalyzeSimulationConvergence, &
+          & WriteMeanEnergyBreakdown,     &
+          & DetailedFEP,                  &
+          & ReportMeans,                  &
+          & Fepus2D,                      &
+          & FepBreakdown,                 &
+          & RunLinearResponse,            & 
+          & AnalyzeFep,                   &
+          & FepUsGroundState,             & 
+          & FepUsFreeEnergies
 
   CONTAINS
 
@@ -13,7 +25,8 @@ MODULE Analysis
 
     SUBROUTINE FepUsGroundState(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,outUnit)
 
-      ! #DES: Compute the ground state PMF via the FEP/US method and write to to the output unit
+      ! #DES: Compute the ground state PMF via the FEP/US method and write statistically significant 
+      !       values to the output unit.
 
       USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
       USE Output,     ONLY : WriteCSV2D
@@ -25,20 +38,21 @@ MODULE Analysis
       INTEGER, INTENT(IN) :: Nbins, minPop, outUnit
 
       INTEGER      :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
-      INTEGER      :: bin, count
       REAL(8)      :: binMidpoints(Nbins)
       REAL(8)      :: binGg(Nbins)  
       REAL(8)      :: G_FEP(SIZE(energyGap,1))
       LOGICAL      :: printBin(Nbins)
+      INTEGER      :: bin, count
       CHARACTER(3) :: head(2)
       REAL(8)      :: output(Nbins,2)
 
       head(1) = "dE"; head(2) = "dG"  
 
-      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP)
+      CALL ComputeFEPProfile(1,SIZE(energyGap,1),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP(:))
 
-      CALL Histogram(energyGap(:,:),mask,Nbins,binPopulations,binIndices,binMidpoints)
-      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),   G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
+      CALL Histogram(energyGap(:,:),mask(:,:),Nbins,binPopulations(:,:),binIndices(:,:),binMidpoints(:))
+      CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP,binPopulations,binIndices,PMF1D=binGg,minPop=minPop,useBin=printBin)
+
       count = 0
       DO bin = 1, nBins
         IF (printBin(bin) .EQV. .TRUE.) THEN
@@ -54,7 +68,7 @@ MODULE Analysis
 
 !*
 
-    SUBROUTINE FepUsFreeEnergies(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,relative)
+    SUBROUTINE FepUsFreeEnergies(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,relative,outUnit)
 
       ! #DES: Routine to compute and return the RS, TS and PS energies on a given PMF.
       !       Assumes a general shape for the PES (through ScanFepUs) which may not be true.
@@ -66,7 +80,7 @@ MODULE Analysis
       LOGICAL, INTENT(IN), OPTIONAL :: relative
       REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
-      INTEGER, INTENT(IN) :: Nbins, minPop
+      INTEGER, INTENT(IN) :: Nbins, minPop, outUnit
 
       INTEGER :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
       REAL(8) :: binMidpoints(Nbins)
@@ -82,7 +96,7 @@ MODULE Analysis
 
       IF (PRESENT(relative) .AND. relative .EQV. .TRUE.) dG(:) = dG(:) - dG(1)
 
-      WRITE(*,'(3F15.8)') dG(:)
+      WRITE(outUnit,'(3F15.8)') dG(:)
 
     END SUBROUTINE FepUsFreeEnergies
 
@@ -97,9 +111,9 @@ MODULE Analysis
 
       IMPLICIT NONE
 
-      REAL(8), INTENT(IN) :: lambda(:), mappingEnergies(:,:,:,:)
-      LOGICAL, INTENT(IN) :: mask(:,:)
-      INTEGER, INTENT(IN) :: outUnit
+      REAL(8), INTENT(IN)      :: lambda(:), mappingEnergies(:,:,:,:)
+      LOGICAL, INTENT(IN)      :: mask(:,:)
+      INTEGER, INTENT(IN)      :: outUnit
       CHARACTER(*), INTENT(IN) :: energyNames(:)
 
       CHARACTER(15) :: head(1+SIZE(energyNames)) ! 1 per column
@@ -132,15 +146,22 @@ MODULE Analysis
       USE Output, ONLY : WriteCSV2D
       USE Data, ONLY : lambda
       USE FreeEnergy, ONLY : ComputeFEPIncrements
+
       IMPLICIT NONE
+
       REAL(8), INTENT(IN) :: mappingEnergies(:,:,:,:)
       LOGICAL, INTENT(IN) :: mask(:,:)
-      REAL(8) :: output(SIZE(mappingEnergies,2)-1,5)
-      CHARACTER(15) :: head(5)
-      INTEGER :: step
-      REAL(8) :: forward(SIZE(mappingEnergies,2)-1), reverse(SIZE(mappingEnergies,2)-1), profile(SIZE(mappingEnergies,2)-1)
 
-      head(1) = "lambda"; head(2) = "forward"; head(3) = "reverse"; head(4) = "profile"; head(5) = "sum"
+      REAL(8)       :: output(SIZE(mappingEnergies,2)-1,5)
+      CHARACTER(15) :: head(5)
+      INTEGER       :: step
+      REAL(8)       :: forward(SIZE(mappingEnergies,2)-1), reverse(SIZE(mappingEnergies,2)-1), profile(SIZE(mappingEnergies,2)-1)
+
+      head(1) = "lambda"
+      head(2) = "forward"
+      head(3) = "reverse"
+      head(4) = "profile"
+      head(5) = "sum"
 
       ! Each FEP increment being evaluated has convergence properties which can be checked
 
@@ -166,13 +187,15 @@ MODULE Analysis
       USE StatisticalFunctions, ONLY : mean, varianceOfMean, FlyvbjergPetersen
 
       IMPLICIT NONE
+
       REAL(8), INTENT(IN) :: lambda(:), coeffs(:,:), mappingEnergies(:,:,:)
       INTEGER, INTENT(IN) :: outUnit, skip(:)
       LOGICAL, INTENT(IN) :: mask(:,:)
+
       CHARACTER(15) :: head(8)
-      REAL(8) :: output(SIZE(mappingEnergies,2),8)
-      INTEGER :: step
-      CHARACTER(4) :: stepString
+      REAL(8)       :: output(SIZE(mappingEnergies,2),8)
+      INTEGER       :: step
+      CHARACTER(4)  :: stepString
 
       ! for each FEP simulation, determine convergence in terms of the total mapping potential
       ! n lambda_n Ca Cb N sparkline <En> sigma(<E_n>) sparkline tau sigma(<E_n>)
@@ -187,17 +210,20 @@ MODULE Analysis
       head(8) = "sigma(<E_n>)"
 
       DO step = 1, SIZE(mappingEnergies,2)
+
         output(step,1) = DBLE(step)
         output(step,2) = lambda(step)
         output(step,3) = coeffs(step,1)
         output(step,4) = coeffs(step,2)
         output(step,5) = skip(step)
         output(step,6) = mean(mappingEnergies(:,step,step),mask(step,:))
+
         !generate sparkline data
         WRITE(stepString,'(I0.4)') step
         CALL WriteRunningMean(mappingEnergies(:,step,step),mask(step,:),"FEP_"//stepString)
         output(step,7) = varianceOfMean(mappingEnergies(:,step,step),mask(step,:))
         output(step,8) = FlyvbjergPetersen(mappingEnergies(skip(step):,step,step))
+
       ENDDO
 
       CALL WriteCSV2D(head,output,outUnit)
@@ -216,14 +242,16 @@ MODULE Analysis
       USE Output, ONLY : WriteCsv2D
 
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: stateEnergy(:,:,:,:), lambda(:)
-      LOGICAL, INTENT(IN) :: mask(:,:)
+
+      REAL(8), INTENT(IN)      :: stateEnergy(:,:,:,:), lambda(:)
+      LOGICAL, INTENT(IN)      :: mask(:,:)
       CHARACTER(*), INTENT(IN) :: energyNames(:)
-      INTEGER, INTENT(IN) :: outUnit
-      REAL(8) :: output(SIZE(stateEnergy,2),1+SIZE(stateEnergy,3)*SIZE(stateEnergy,4))
-      INTEGER :: step, state, type, index
+      INTEGER, INTENT(IN)      :: outUnit
+
+      REAL(8)       :: output(SIZE(stateEnergy,2),1+SIZE(stateEnergy,3)*SIZE(stateEnergy,4))
+      INTEGER       :: step, state, type, index
       CHARACTER(15) :: head(1+SIZE(stateEnergy,3)*SIZE(stateEnergy,4))
-      CHARACTER(4) :: stateString
+      CHARACTER(4)  :: stateString
 
       head(1) = 'lambda_n'
       DO type = 1, SIZE(stateEnergy,4)    ! nEnergyTypes
@@ -252,6 +280,8 @@ MODULE Analysis
 
     SUBROUTINE AnalyzeConvergenceBasic(property,mask,output)
 
+      ! #DES: This routine does not conform to the rules of this module - should be a subsubroutine where it is used.
+
       USE StatisticalFunctions, ONLY : mean, varianceOfMean
 
       IMPLICIT NONE
@@ -269,7 +299,7 @@ MODULE Analysis
 
 !*
     ! WriteRunningMean - Write the element-by-element mean of the array 'property' to a file named 'name'_mean.csv
-    ! Monopolizes unit 101
+    ! Monopolizes unit 101, needs to be cleaned so that it takes an already open file!
 
     SUBROUTINE writeRunningMean(property,mask,name)
 
@@ -278,14 +308,15 @@ MODULE Analysis
       USE Output, ONLY : WriteCSV2D
 
       IMPLICIT NONE
-      REAL(8), INTENT(IN) :: property(:)
-      LOGICAL, INTENT(IN) :: mask(:)
+
+      REAL(8), INTENT(IN)      :: property(:)
+      LOGICAL, INTENT(IN)      :: mask(:)
       CHARACTER(*), INTENT(IN) :: name
 
-      REAL(8) :: out(SIZE(property),3)
       INTEGER, PARAMETER :: oUnit = 101
-      INTEGER :: i
       CHARACTER(4), PARAMETER :: head(3) = (/"i   ","x_i ","mean"/)
+      INTEGER :: i
+      REAL(8) :: out(SIZE(property),3)
 
       DO i = 1, SIZE(property)
         out(i,1) = DBLE(i)
@@ -294,17 +325,20 @@ MODULE Analysis
       out(:,2) = property(:)
       out(:,3) = runningMean(property,mask)
       
-      CALL OpenFile(oUnit,trim(adjustl(name))//"_runningmean.csv","write")
+      CALL OpenFile(oUnit,trim(adjustl(name))//"_runningmean.csv","write") !should already have unit of an open file
       CALL WriteCSV2D(head,out,oUnit)
       CALL CloseFile(oUnit)
 
     END SUBROUTINE writeRunningMean
 
-    ! ReportMeans - csv output of FEP data in qfep style
-    ! Each row describes a single FEP step in a given state and provides:
-    ! step index, step lambda, number of timesteps, state, step state coefficient, mean of each defined energy type
+!*
 
+    ! This routine is not conforming to the rules of the module.
     SUBROUTINE ReportMeans()
+
+      ! ReportMeans - csv output of FEP data in qfep style
+      ! Each row describes a single FEP step in a given state and provides:
+      ! step index, step lambda, number of timesteps, state, step state coefficient, mean of each defined energy type
 
       USE Input, ONLY : energyNames, stateEnergy, coeffs
       USE Data, ONLY : lambda
@@ -312,10 +346,11 @@ MODULE Analysis
       USE Output, ONLY : WriteCSV2D
 
       IMPLICIT NONE
-      INTEGER :: nFepSteps, nStates, nColumns, nRows
-      INTEGER :: name, fepstep, state, type, row
+
+      INTEGER                    :: nFepSteps, nStates, nColumns, nRows
+      INTEGER                    :: name, fepstep, state, type, row
       CHARACTER(20), ALLOCATABLE :: head(:)
-      REAL(8), ALLOCATABLE :: out(:,:)
+      REAL(8),       ALLOCATABLE :: out(:,:)
 
       nFepSteps = SIZE(stateEnergy,2)
       nStates = SIZE(stateEnergy,3)
