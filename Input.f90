@@ -24,11 +24,11 @@ MODULE Input
   ! RC = (rcCoeffA * E_A) + (rcCoeffB * E_B)
 
   NAMELIST /settings/ nStates, stateA, stateB, nFepSteps, nSkip, stepTS, nBins, minPop, fileBase, trajecBase, &
-                      temperature, rcCoeffA, rcCoeffB, useEnergyGapCoupling, dGTS, dGPS
+                      temperature, rcCoeffA, rcCoeffB, useEnergyGapCoupling, dGTS, dGPS, outDir
   INTEGER :: nFepSteps, nStates, nSkip, stateA, stateB, stepTS, nBins, minPop
   REAL(8) :: temperature, rcCoeffA, rcCoeffB, dGTS, dGPS
   LOGICAL :: useEnergyGapCoupling
-  CHARACTER(100) :: fileBase, trajecBase
+  CHARACTER(100) :: fileBase, trajecBase, outDir
 
   ! #DES: The stateEnergy and coeffs arrays hold all of the simulation data (irrespective of nSkip, nTimesteps)
   REAL(8), ALLOCATABLE :: stateEnergy(:,:,:,:), coeffs(:,:,:)
@@ -364,6 +364,7 @@ MODULE Input
 
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
+      CHARACTER(100) :: command
 
       CALL ReadNameList()
       CALL CheckNameList()
@@ -371,6 +372,8 @@ MODULE Input
       !Compute dependent information
       beta = 1.0d0 / (0.0019872041d0 * temperature)
       IF (dGTS /= HUGE(0.0d0) .AND. dGPS /= HUGE(0.0d0)) targetsPresent = .TRUE.
+      command = "mkdir "//TRIM(ADJUSTL(outdir))
+      !CALL SYSTEM(command) ! Write functional directory creation routine
 
       CALL PrintNameList(logUnit)
       
@@ -402,6 +405,7 @@ MODULE Input
       nBins      =  0
       minPop     =  1
       fileBase   =  "EnergyFile"
+      outDir     =  "output"
       useEnergyGapCoupling = .TRUE.
       dGTS = HUGE(0.0d0)
       dGPS = HUGE(0.0d0)
@@ -458,6 +462,7 @@ MODULE Input
     WRITE(logUnit,'(A,I6)')   "Number of FEP/US Bins        : ", nBins
     WRITE(logUnit,'(A,I6)')   "Population Threshold of Bins : ", minPop
     WRITE(logUnit,'(A,L6)')   "Use Energy Gap for Coupling  : ", useEnergyGapCoupling
+    WRITE(logUnit,'(A,A)')    "Output Directory             : ", outDir
 
     IF (targetsPresent .EQV. .TRUE.) THEN
       WRITE(logUnit,'(A,F6.2)') "Target Free Energy RS -> TS  : ", dGTS

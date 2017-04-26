@@ -276,8 +276,13 @@ MODULE Data
           DO ene_potential = dyn_potential-1, dyn_potential+1
             IF (ene_potential < 1 .OR. ene_potential > SIZE(stateEnergy,2)) CYCLE
             DO timestep = 1, nTimesteps(dyn_potential)
+              IF (type == 1) THEN
                 mappingEnergies(timestep,ene_potential,dyn_potential,type) = (coeffs(timestep,ene_potential,stateA) * (stateEnergy(timestep,dyn_potential,stateA,type) + alpha(stateA)) ) + &
   &                                                                          (coeffs(timestep,ene_potential,stateB) * (stateEnergy(timestep,dyn_potential,stateB,type) + alpha(stateB)) )
+              ELSE
+                mappingEnergies(timestep,ene_potential,dyn_potential,type) = (coeffs(timestep,ene_potential,stateA) * (stateEnergy(timestep,dyn_potential,stateA,type)) ) + &
+  &                                                                          (coeffs(timestep,ene_potential,stateB) * (stateEnergy(timestep,dyn_potential,stateB,type)) )
+              ENDIF
             ENDDO
           ENDDO
         ENDDO

@@ -304,7 +304,8 @@ MODULE Analysis
     SUBROUTINE writeRunningMean(property,mask,name)
 
       USE StatisticalFunctions, ONLY : runningMean
-      USe FileIO, ONLY : OpenFile, CloseFile
+      USE FileIO, ONLY : OpenFile, CloseFile
+      USE Input, ONLY : outDir
       USE Output, ONLY : WriteCSV2D
 
       IMPLICIT NONE
@@ -325,7 +326,7 @@ MODULE Analysis
       out(:,2) = property(:)
       out(:,3) = runningMean(property,mask)
       
-      CALL OpenFile(oUnit,trim(adjustl(name))//"_runningmean.csv","write") !should already have unit of an open file
+      CALL OpenFile(oUnit,TRIM(ADJUSTL(outDir))//"/"//trim(adjustl(name))//"_runningmean.csv","write") !should already have unit of an open file
       CALL WriteCSV2D(head,out,oUnit)
       CALL CloseFile(oUnit)
 
