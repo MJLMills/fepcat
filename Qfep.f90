@@ -10,7 +10,7 @@ PROGRAM Qfep
   INTEGER, PARAMETER :: outUnit = 64
 
     CALL Startup()
-    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.)
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.TRUE.)
     CALL QFepAnalysis()
     CALL CleanUp()
 

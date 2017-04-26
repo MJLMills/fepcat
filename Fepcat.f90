@@ -10,7 +10,7 @@ PROGRAM Fepcat
   IMPLICIT NONE
 
     CALL Startup()
-    CALL ComputeDerivedData(logUnit,doTiming=.FALSE., readCoords = .FALSE.)
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE., readCoords = .FALSE., doFEPUS = .TRUE.)
     CALL FullAnalysis()
     CALL CleanUp()
 

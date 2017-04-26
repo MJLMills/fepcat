@@ -26,7 +26,7 @@ PROGRAM Fep2D
       CALL CreateLogFile()
       CALL ReadInput(readCoords=readCoords)
       CALL DetermineCollectiveVariables(logUnit)
-      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=readCoords)
+      CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=readCoords,doFEPUS=.TRUE.)
 
     END SUBROUTINE Startup
 

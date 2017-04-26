@@ -118,7 +118,7 @@ MODULE Data
 
 !*
 
-    SUBROUTINE ComputeDerivedData(logUnit,doTiming,readCoords)
+    SUBROUTINE ComputeDerivedData(logUnit,doTiming,readCoords,doFEPUS)
 
       ! #DES: Public master subroutine for computing all derived data from the inputs
       ! As this is potentially expensive, can time each piece
@@ -127,7 +127,7 @@ MODULE Data
       USE InputCollectiveVariables, ONLY : coordTypes, coordIndices
       IMPLICIT NONE
       INTEGER, INTENT(IN) :: logUnit
-      LOGICAL, INTENT(IN) :: doTiming, readCoords
+      LOGICAL, INTENT(IN) :: doTiming, readCoords, doFEPUS
       REAL(8) :: time(3), t1, t2, diff
 
       WRITE(logUnit,'(A)') "Computing Data Derived from Input"; WRITE(logUnit,*)
@@ -146,10 +146,12 @@ MODULE Data
       CALL ComputeEnergyGap(alpha)
       CALL ComputeOffDiagonals(energyGap,couplingConstant,couplingExpExpFactor,couplingGaussExpFactor)
 
-      IF (doTiming) THEN
-        CALL ComputeGroundStateEnergy(alpha,time(3))
-      ELSE
-        CALL ComputeGroundStateEnergy(alpha)
+      IF (doFEPUS) THEN
+        IF (doTiming) THEN
+          CALL ComputeGroundStateEnergy(alpha,time(3))
+        ELSE
+          CALL ComputeGroundStateEnergy(alpha)
+        ENDIF
       ENDIF
 
       ! This should only be called when trajectory information is available
