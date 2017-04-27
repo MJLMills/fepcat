@@ -17,14 +17,17 @@ PROGRAM Fep
 
   SUBROUTINE FepAnalysis
 
-    USE Input, ONLY    : mask, energynames, outDir
+    USE Input, ONLY    : mask, energynames, outDir, stateEnergy
     USE Data, ONLY     : lambda, mappingEnergies
-    USE Analysis, ONLY : FepBreakdown
+    USE Analysis, ONLY : WriteMeanEnergyBreakdown, FepBreakdown
     USE FileIO, ONLY : OpenFile, CloseFile
 
     IMPLICIT NONE
     INTEGER, PARAMETER :: outUnit = 22
 
+      CALL OpenFile(outUnit,TRIM(ADJUSTL(outDir))//"/mean-energy.csv",'write')
+      CALL WriteMeanEnergyBreakdown(stateEnergy,mask,energyNames,lambda,outUnit)
+      CALL CloseFile(outUnit)
 
       CALL OpenFile(outUnit,TRIM(ADJUSTL(outDir))//"/fep-breakdown.csv","write")
       CALL FepBreakdown(lambda(:),mappingEnergies(:,:,:,:),mask(:,:),energyNames(:),outUnit)

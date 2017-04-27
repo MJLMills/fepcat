@@ -561,7 +561,11 @@ MODULE Input
         DO state = 1, nStates
 
           READ(eneUnit,'(F15.8)',ADVANCE='NO',IOSTAT=ios) coeffs(timestep,step,state)
-          IF (ios /= 0) CYCLE ReadSteps
+          IF (ios /= 0) THEN
+            WRITE(logUnit,'(A,I0.2,A,I0.6,A,I0.4)') "Failed to read expected coefficient for state ", state, " at timestep ", timestep, " of FEP simulation ", step 
+            WRITE(logUNit,'(A)') "Moving to next FEP simulation"
+            CYCLE ReadSteps
+          ENDIF
 
           DO type = 1, nEnergyTypes
             READ(eneUnit,'(F15.8)',ADVANCE='NO',IOSTAT=ios) stateEnergy(timestep,step,state,type)
