@@ -2,6 +2,8 @@ MODULE Movies
 
   IMPLICIT NONE
 
+  CHARACTER(1), PARAMETER :: sep = "/" ! unix-based only
+
   CONTAINS
 
   SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda,skip)
@@ -10,29 +12,27 @@ MODULE Movies
     !       print data for movie frames
 
     USE FileIO, ONLY     : OpenFile, CloseFile
-    USE Output, ONLY     : WriteCSV2D
     USE FreeEnergy, ONLY : ComputeFEPProfile
 
     IMPLICIT NONE
 
-    REAL(8), INTENT(IN)    :: mappingEnergies(:,:,:), lambda(:)
-    LOGICAL, INTENT(IN)    :: mask(:,:)
-    INTEGER, INTENT(IN)    :: skip
-    INTEGER, PARAMETER     :: csvUnit = 86, shUnit = 87
-    CHARACTER(15), PARAMETER :: movieDir = "fep-movie-files"
+    REAL(8),       INTENT(IN) :: mappingEnergies(:,:,:), lambda(:)
+    LOGICAL,       INTENT(IN) :: mask(:,:)
+    INTEGER,       INTENT(IN) :: skip
 
-    LOGICAL             :: localMask(SIZE(mask,1),SIZE(mask,2))
-    INTEGER             :: fepstep, timestep
-    CHARACTER(100)      :: outFileName
-    CHARACTER(6)        :: head(2)
-    REAL(8)             :: output(SIZE(mappingEnergies,2),2)
+    INTEGER,       PARAMETER  :: shUnit = 87
+    CHARACTER(3),  PARAMETER  :: extension = "csv"
+    CHARACTER(15), PARAMETER  :: movieDir = "fep-movie-files" ! add to namelist
+    CHARACTER(12), PARAMETER  :: shellScript = "makeMovie.sh" ! add to namelist
 
-    head(1) = "lambda"; head(2) = "deltaG"
-    DO fepstep = 1, SIZE(mappingEnergies,2)
-      output(fepstep,1) = lambda(fepstep)
-    ENDDO
+    LOGICAL        :: localMask(SIZE(mask,1),SIZE(mask,2))
+    REAL(8)        :: output(SIZE(mappingEnergies,2),2)
+    CHARACTER(100) :: outFileName
+    INTEGER        :: fepstep, timestep
 
-    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieDir))//"/makeMovie.sh","write")
+    output(:,1) = lambda(:)
+
+    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieDir))//sep//TRIM(ADJUSTL(shellScript)),"write")
 
     DO fepstep = 1, SIZE(mappingEnergies,2)
 
@@ -45,12 +45,9 @@ MODULE Movies
 
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),localMask(:,:),output(:,2))
 
-        outFileName = createFileName(fepstep,timestep,"csv")
-        CALL OpenFile(csvUnit,TRIM(ADJUSTL(movieDir))//"/"//TRIM(ADJUSTL(outFileName)),"write")
-        CALL WriteCSV2D(head,output,csvUnit)
-        CALL CloseFile(csvUnit)
-
-        CALL WriteShellScript(outFileName,shUnit)
+        outFileName = createFileName(fepstep,timestep,extension)
+        CALL WriteDataFrame(output,movieDir//sep//TRIM(ADJUSTL(outFileName)))
+        CALL WriteShellCommands(outFileName,shUnit)
 
       ENDDO
     ENDDO
@@ -60,23 +57,34 @@ MODULE Movies
   END SUBROUTINE MakeFepMovie
 
 !*
-  SUBROUTINE WriteDataFrame()
+
+  SUBROUTINE WriteDataFrame(data,outFilePath)
+
+    USE FileIO, ONLY : OpenFile, CloseFile
+    USE Output, ONLY : WriteCSV2D
 
     IMPLICIT NONE
 
-!        outFileName = createFileName(fepstep,timestep,"csv")
-!        CALL OpenFile(csvUnit,TRIM(ADJUSTL(movieDir))//"/"//TRIM(ADJUSTL(outFileName)),"write")
-!        CALL WriteCSV2D(head,output,csvUnit)
-!        CALL CloseFile(csvUnit)
+    REAL(8), INTENT(IN)      :: data(:,:)
+    CHARACTER(*), INTENT(IN) :: outFilePath
+
+    INTEGER, PARAMETER       :: csvUnit = 86
+    CHARACTER(6),  PARAMETER :: head(2) = (/"lambda","deltaG"/)
+
+      CALL OpenFile(csvUnit,TRIM(ADJUSTL(outFilePath)),"write")
+      CALL WriteCSV2D(head,data,csvUnit)
+      CALL CloseFile(csvUnit)
 
   END SUBROUTINE WriteDataFrame
 
-  SUBROUTINE WriteShellScript(fileName,unit)
+!*
+
+  SUBROUTINE WriteShellCommands(fileName,unit)
 
     IMPLICIT NONE
     CHARACTER(*), INTENT(IN) :: fileName
     INTEGER, INTENT(IN)      :: unit
-    CHARACTER(8), PARAMETER  :: genericFileName = "data.csv"
+    CHARACTER(8), PARAMETER  :: genericFileName = "data.csv" ! these 3 should be in a namelist
     CHARACTER(6), PARAMETER  :: plotScript = "plot.r"
     CHARACTER(7), PARAMETER  :: command = "Rscript"
     
@@ -84,14 +92,16 @@ MODULE Movies
     WRITE(unit,'(A)') TRIM(ADJUSTL(command))//" "//TRIM(ADJUSTL(plotScript))//" "//TRIM(ADJUSTL(genericFileName))
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(genericFileName))//" "//TRIM(ADJUSTL(fileName))
 
-  END SUBROUTINE WriteShellScript
+  END SUBROUTINE WriteShellCommands
+
+!*
 
   CHARACTER(100) FUNCTION createFileName(fepstep,timestep,extension)
 
     IMPLICIT NONE
     INTEGER,      INTENT(IN) :: fepstep, timestep
-    CHARACTER(*), INTENT(IN) :: extension    
-    CHARACTER(9), PARAMETER  :: prefix = "FEP-FRAME"
+    CHARACTER(*), INTENT(IN) :: extension
+    CHARACTER(9), PARAMETER  :: prefix = "FEP-FRAME" ! should be in a namelist
     CHARACTER(8) :: timeChar
     CHARACTER(4) :: fepChar
 
