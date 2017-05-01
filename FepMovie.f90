@@ -7,7 +7,7 @@ PROGRAM FepMovie
   IMPLICIT NONE
 
     CALL Startup()
-    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.TRUE.)
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.FALSE.)
     CALL Driver()
     CALL CleanUp()  
 
@@ -22,7 +22,7 @@ PROGRAM FepMovie
     USE Movies, ONLY : MakeFepMovie
     IMPLICIT NONE
 
-    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),100)
+    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=100)
 
   END SUBROUTINE Driver
 
