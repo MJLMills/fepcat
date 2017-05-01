@@ -20,8 +20,11 @@ PROGRAM FepMovie
     USE Data,   ONLY : mappingEnergies, lambda
     USE Input,  ONLY : mask
     USE Movies, ONLY : MakeFepMovie
+    USE MOvieOptions, ONLY : ProcessNameList
+
     IMPLICIT NONE
 
+    CALL ProcessNameList
     CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=100)
 
   END SUBROUTINE Driver

@@ -6,13 +6,16 @@ MODULE Movies
 
   CONTAINS
 
+!*
+
   SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda,skip)
 
     ! #DES: Run FEP procedure for multiple points in the total simulation and
     !       print data for movie frames
 
-    USE FileIO, ONLY     : OpenFile, CloseFile
-    USE FreeEnergy, ONLY : ComputeFEPProfile
+    USE FileIO, ONLY       : OpenFile, CloseFile
+    USE FreeEnergy, ONLY   : ComputeFEPProfile
+    USE MovieOptions, ONLY : movieOutputDir, plotShellScript
 
     IMPLICIT NONE
 
@@ -22,8 +25,6 @@ MODULE Movies
 
     INTEGER,       PARAMETER  :: shUnit = 87
     CHARACTER(3),  PARAMETER  :: extension = "csv"
-    CHARACTER(15), PARAMETER  :: movieDir = "fep-movie-files" ! add to namelist
-    CHARACTER(12), PARAMETER  :: shellScript = "makeMovie.sh" ! add to namelist
 
     LOGICAL        :: localMask(SIZE(mask,1),SIZE(mask,2))
     REAL(8)        :: output(SIZE(mappingEnergies,2),2)
@@ -32,7 +33,7 @@ MODULE Movies
 
     output(:,1) = lambda(:)
 
-    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieDir))//sep//TRIM(ADJUSTL(shellScript)),"write")
+    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(plotShellScript)),"write")
 
     DO fepstep = 1, SIZE(mappingEnergies,2)
 
@@ -46,10 +47,11 @@ MODULE Movies
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),localMask(:,:),output(:,2))
 
         outFileName = createFileName(fepstep,timestep,extension)
-        CALL WriteDataFrame(output,movieDir//sep//TRIM(ADJUSTL(outFileName)))
+        CALL WriteDataFrame(output,movieOutputDir//sep//TRIM(ADJUSTL(outFileName)))
         CALL WriteShellCommands(outFileName,shUnit)
 
       ENDDO
+
     ENDDO
 
     CALL CloseFile(shUnit)    
@@ -81,16 +83,16 @@ MODULE Movies
 
   SUBROUTINE WriteShellCommands(fileName,unit)
 
+    USE MovieOptions, ONLY : genericDataFileName, plotCommand, plotScript
+
     IMPLICIT NONE
+
     CHARACTER(*), INTENT(IN) :: fileName
     INTEGER, INTENT(IN)      :: unit
-    CHARACTER(8), PARAMETER  :: genericFileName = "data.csv" ! these 3 should be in a namelist
-    CHARACTER(6), PARAMETER  :: plotScript = "plot.r"
-    CHARACTER(7), PARAMETER  :: command = "Rscript"
     
-    WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(fileName))//" "//TRIM(ADJUSTL(genericFileName))
-    WRITE(unit,'(A)') TRIM(ADJUSTL(command))//" "//TRIM(ADJUSTL(plotScript))//" "//TRIM(ADJUSTL(genericFileName))
-    WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(genericFileName))//" "//TRIM(ADJUSTL(fileName))
+    WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(fileName))//" "//TRIM(ADJUSTL(genericDataFileName))
+    WRITE(unit,'(A)') TRIM(ADJUSTL(plotCommand))//" "//TRIM(ADJUSTL(plotScript))//" "//TRIM(ADJUSTL(genericDataFileName))
+    WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(genericDataFileName))//" "//TRIM(ADJUSTL(fileName))
 
   END SUBROUTINE WriteShellCommands
 
@@ -98,16 +100,18 @@ MODULE Movies
 
   CHARACTER(100) FUNCTION createFileName(fepstep,timestep,extension)
 
+    USE MovieOptions, ONLY : outputDataFilePrefix
+
     IMPLICIT NONE
+
     INTEGER,      INTENT(IN) :: fepstep, timestep
     CHARACTER(*), INTENT(IN) :: extension
-    CHARACTER(9), PARAMETER  :: prefix = "FEP-FRAME" ! should be in a namelist
     CHARACTER(8) :: timeChar
     CHARACTER(4) :: fepChar
 
     WRITE(fepChar, '(I0.4)') fepstep
     WRITE(timeChar,'(I0.8)') timestep
-    createFileName = TRIM(ADJUSTL(prefix))//fepChar//"_"//timeChar//"."//TRIM(ADJUSTL(extension))
+    createFileName = TRIM(ADJUSTL(outputDataFilePrefix))//fepChar//"_"//timeChar//"."//TRIM(ADJUSTL(extension))
 
   END FUNCTION createFileName
 
