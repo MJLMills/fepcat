@@ -27,28 +27,29 @@ MODULE Movies
     CHARACTER(3),  PARAMETER  :: extension = "csv"
 
     LOGICAL        :: localMask(SIZE(mask,1),SIZE(mask,2))
-    REAL(8)        :: output(SIZE(mappingEnergies,2),2)
-    CHARACTER(100) :: outFileName
+    REAL(8)        :: output(SIZE(mappingEnergies,2),2), dG(SIZE(mappingEnergies,2))
+    CHARACTER(100) :: outFileName, imageFileName
     INTEGER        :: fepstep, timestep
 
     output(:,1) = lambda(:)
 
     CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(plotShellScript)),"write")
+    WRITE(shUnit,*) "rm list.dat"
 
-    DO fepstep = 1, SIZE(mappingEnergies,2)
+    output(:,2)    = 0.0d0
+    localMask(:,:) = mask(:,:)
 
-      localMask(:,:) = mask(:,:)
-      IF (fepstep < SIZE(mappingEnergies,2)-1) localMask(fepstep+2:,:) = .FALSE.
+    DO fepstep = 1, SIZE(mappingEnergies,2) ! only work on the current fepstep
 
       DO timestep = 1, SIZE(mappingEnergies,1), skip
 
-        localMask(fepstep+1,timestep:) = .FALSE.
+        CALL ComputeFEPProfile(1,fepstep,mappingEnergies(1:timestep,:,:),mask(:,1:timestep),dG(:))
+        output(fepstep,2) = dG(fepstep)
 
-        CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),localMask(:,:),output(:,2))
-
-        outFileName = createFileName(fepstep,timestep,extension)
-        CALL WriteDataFrame(output,movieOutputDir//sep//TRIM(ADJUSTL(outFileName)))
-        CALL WriteShellCommands(outFileName,shUnit)
+        outFileName   = createFileName(fepstep,timestep,extension)
+        imageFileName = createFileName(fepstep,timestep,"png")
+        CALL WriteDataFrame(output,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(outFileName)))
+        CALL WriteShellCommands(outFileName,imageFileName,shUnit)
 
       ENDDO
 
@@ -81,18 +82,23 @@ MODULE Movies
 
 !*
 
-  SUBROUTINE WriteShellCommands(fileName,unit)
+  SUBROUTINE WriteShellCommands(fileName,imageName,unit)
 
     USE MovieOptions, ONLY : genericDataFileName, plotCommand, plotScript
 
     IMPLICIT NONE
 
-    CHARACTER(*), INTENT(IN) :: fileName
+    CHARACTER(*), INTENT(IN) :: fileName, imageName
     INTEGER, INTENT(IN)      :: unit
+
+     WRITE(*,*) fileNAme, imageName, unit
     
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(fileName))//" "//TRIM(ADJUSTL(genericDataFileName))
-    WRITE(unit,'(A)') TRIM(ADJUSTL(plotCommand))//" "//TRIM(ADJUSTL(plotScript))//" "//TRIM(ADJUSTL(genericDataFileName))
+    WRITE(unit,'(A)') TRIM(ADJUSTL(plotCommand))//" "//TRIM(ADJUSTL(plotScript))
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(genericDataFileName))//" "//TRIM(ADJUSTL(fileName))
+    WRITE(unit,'(A)') "mv frame.png "//TRIM(ADJUSTL(imageName))
+    WRITE(unit,'(A)') "echo file "//TRIM(ADJUSTL(imageName))//" >> list.dat"
+    WRITE(unit,*)
 
   END SUBROUTINE WriteShellCommands
 

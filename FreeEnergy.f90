@@ -340,10 +340,16 @@ MODULE FreeEnergy
       LOGICAL, INTENT(IN) :: mask(:)
       REAL(8) :: average
 
-      IF (SIZE(E_n) /= SIZE(E_m)) STOP "Error: ComputeStepFreeEnergy"
+      IF (COUNT(mask(:)) == 0) THEN
+        ComputeStepFreeEnergy = 0.0d0
+      ELSE
 
-      average = mean(ArrayEXP(-1.0d0 * beta * (E_m(:) - E_n(:))),mask(:))
-      ComputeStepFreeEnergy = (-1.0d0 / beta) * LOG(average)
+        IF (SIZE(E_n) /= SIZE(E_m)) STOP "Error: ComputeStepFreeEnergy"
+
+        average = mean(ArrayEXP(-1.0d0 * beta * (E_m(:) - E_n(:))),mask(:))
+        ComputeStepFreeEnergy = (-1.0d0 / beta) * LOG(average)
+
+      ENDIF
 
     END FUNCTION ComputeStepFreeEnergy
 
@@ -392,6 +398,7 @@ MODULE FreeEnergy
       REAL(8), INTENT(IN) :: mappingEnergies(:,:,:) !timesteps, fepsteps, fepsteps
       LOGICAL, INTENT(IN) :: mask(:,:)
       REAL(8), INTENT(OUT) :: profile(SIZE(mappingEnergies,2))
+
       REAL(8) :: increments(SIZE(mappingEnergies,2)-1)
       INTEGER :: step
 

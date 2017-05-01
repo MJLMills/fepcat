@@ -25,7 +25,7 @@ PROGRAM FepMovie
     IMPLICIT NONE
 
     CALL ProcessNameList
-    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=100)
+    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=20)
 
   END SUBROUTINE Driver
 
