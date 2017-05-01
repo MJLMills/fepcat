@@ -25,7 +25,6 @@ MODULE Movies
     INTEGER             :: fepstep, timestep
     CHARACTER(100)      :: outFileName
     CHARACTER(6)        :: head(2)
-!    REAL(8)             :: G_FEP(SIZE(mappingEnergies,2))
     REAL(8)             :: output(SIZE(mappingEnergies,2),2)
 
     head(1) = "lambda"; head(2) = "deltaG"
@@ -44,7 +43,6 @@ MODULE Movies
 
         localMask(fepstep+1,timestep:) = .FALSE.
 
-        output(:,2) = 0.0d0
         CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),localMask(:,:),output(:,2))
 
         outFileName = createFileName(fepstep,timestep,"csv")
@@ -52,10 +50,7 @@ MODULE Movies
         CALL WriteCSV2D(head,output,csvUnit)
         CALL CloseFile(csvUnit)
 
-        WRITE(shUnit,'(A,A,A)') "mv ", TRIM(ADJUSTL(outFileName)), " data.csv"
-        WRITE(shUnit,'(A)')     "RScript plot.r data.csv" 
-        WRITE(shUnit,'(A,A,A)') "mv data.csv ", TRIM(ADJUSTL(outFileName))
-
+        CALL WriteShellScript(outFileName,shUnit)
 
       ENDDO
     ENDDO
@@ -65,6 +60,16 @@ MODULE Movies
   END SUBROUTINE MakeFepMovie
 
 !*
+  SUBROUTINE WriteDataFrame()
+
+    IMPLICIT NONE
+
+!        outFileName = createFileName(fepstep,timestep,"csv")
+!        CALL OpenFile(csvUnit,TRIM(ADJUSTL(movieDir))//"/"//TRIM(ADJUSTL(outFileName)),"write")
+!        CALL WriteCSV2D(head,output,csvUnit)
+!        CALL CloseFile(csvUnit)
+
+  END SUBROUTINE WriteDataFrame
 
   SUBROUTINE WriteShellScript(fileName,unit)
 
