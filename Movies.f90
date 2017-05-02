@@ -61,6 +61,17 @@ MODULE Movies
 
 !*
 
+  SUBROUTINE MakeFepusMovie()
+
+    IMPLICIT NONE
+
+    ! similar to above but instead of plotting FEP values plot FEP/US values over time, i.e. dE vs dg#
+    ! copy initially from the analysis FEP/US routine
+
+  END SUBROUTINE MakeFepusMovie
+
+!*
+
   SUBROUTINE WriteDataFrame(data,outFilePath)
 
     USE FileIO, ONLY : OpenFile, CloseFile
