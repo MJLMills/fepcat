@@ -72,6 +72,16 @@ MODULE Movies
 
 !*
 
+  SUBROUTINE MakeMDMovie
+
+    IMPLICIT NONE
+
+    ! for a specific timestep, write an update plot of the energy variation, E_RS, E_PS and mapping energy
+
+  END SUBROUTINE MakeMDMovie
+
+!*
+
   SUBROUTINE WriteDataFrame(data,outFilePath)
 
     USE FileIO, ONLY : OpenFile, CloseFile
