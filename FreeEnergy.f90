@@ -49,21 +49,38 @@ MODULE FreeEnergy
       ! #TODO: mappingEnergies does not need to be 3D; should contain diagonals of the full mappingEnergies array
 
       IMPLICIT NONE
+
       REAL(8), INTENT(IN)            :: mappingEnergies(:,:,:), targetEnergy(:,:)
       REAL(8), INTENT(IN)            :: G_FEP(:)
       INTEGER, INTENT(IN)            :: binPopulations(:,:), binIndices(:,:)
       INTEGER, INTENT(IN)            :: minPop
+
       REAL(8), INTENT(OUT), OPTIONAL :: PMF2Dout(SIZE(binPopulations,1),SIZE(G_FEP))
       REAL(8), INTENT(OUT)           :: PMF1D(SIZE(binPopulations,1))
       LOGICAL, INTENT(OUT), OPTIONAL :: useBin(SIZE(binPopulations,1))
       INTEGER                        :: Nbins, NfepSteps, NtimeSteps   ! Totals
       INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
-      REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(G_FEP))
+      REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(mappingEnergies,2))
+      LOGICAL, PARAMETER :: debug = .TRUE.
+
+      IF (debug) THEN
+
+        WRITE(*,'(A)') "Q-style FEP/US Routine"; WRITE(*,*)
+        WRITE(*,'(A,I6)') "Minimum bin population for significance = ", minPop
+        IF (PRESENT(PMF2Dout)) WRITE(*,'(A)') "2-dimensional PMF will be returned"
+        IF (PRESENT(useBin)) WRITE(*,'(A)') "Booleans for significant bins will be returned"
+        WRITE(*,'(A,I6,I6,I6)') "Received mappingEnergies of dimension ", SIZE(mappingEnergies,1), SIZE(mappingEnergies,2), SIZE(mappingEnergies,3)
+        WRITE(*,'(A,I6,I6)')    "Received targetEnergy of dimension    ", SIZE(targetEnergy,1),    SIZE(targetEnergy,2)
+        WRITE(*,'(A,I6)')       "Received G_FEP of dimension           ", SIZE(G_FEP)
+        WRITE(*,'(A,I6,I6)')    "Received binPopulations of dimension  ", SIZE(binPopulations,1),  SIZE(binPopulations,2)
+        WRITE(*,'(A,I6,I6)')    "Received binIndices of dimension      ", SIZE(binIndices,1),      SIZE(binIndices,2)
+
+      ENDIF  
 
       IF (PRESENT(useBin)) useBin(:)  = .FALSE.
-      Nbins      = SIZE(binPopulations,1)
-      NfepSteps  = SIZE(mappingEnergies,2)
-      NtimeSteps = SIZE(mappingEnergies,1)
+      Nbins      = SIZE(binPopulations,1)  !;  WRITE(*,*) "Num. Bins:     ", Nbins
+      NfepSteps  = SIZE(mappingEnergies,2) !; WRITE(*,*) "Num. Fepsteps: ", Nfepsteps
+      NtimeSteps = SIZE(mappingEnergies,1) !; WRITE(*,*) "Num. Timesteps:", Ntimesteps
 
       ! Compute the free energy for the target potential for each populated bin
       ! This generates the Q-style 2D PMF where information from each fepstep is retained separately.
@@ -78,6 +95,7 @@ MODULE FreeEnergy
           ENDDO
         ENDDO
       ENDDO
+      ! works to here provided slices of binIndices, targetEnergy and mappingEnergy are provided
 
       WHERE (binPopulations(:,:) > 0) PMF2D(:,:) = PMF2D(:,:) / binPopulations(:,:)
 
@@ -245,7 +263,7 @@ MODULE FreeEnergy
 
 !*
 
-    SUBROUTINE Histogram(data,useData,N,binPopulations,binIndices,binMidpoints)
+    SUBROUTINE Histogram(data,useData,N,binPopulations,binIndices,binMidpoints,forceMin,forceMax)
 
       ! #DES: Generate a histogram along the reaction coordinate
 
@@ -255,6 +273,7 @@ MODULE FreeEnergy
       INTEGER, INTENT(IN)  :: N                   ! Number of bins
       REAL(8), INTENT(IN)  :: data(:,:)           ! values to histogram: nFep x nTimesteps
       LOGICAL, INTENT(IN)  :: useData(:,:)        ! mask for data values
+      REAL(8), INTENT(IN), OPTIONAL  :: forceMax, forceMin  ! force the histogram range if desired
       INTEGER, INTENT(OUT) :: binPopulations(:,:)
       INTEGER, INTENT(OUT) :: binIndices(:,:)
       REAL(8), INTENT(OUT) :: binMidpoints(:)
@@ -263,8 +282,18 @@ MODULE FreeEnergy
       REAL(8) :: min, max, binWidth, binEdges(N+1)
       INTEGER :: bin, fepstep, timestep
 
-      min = MINVAL(data,MASK=useData .EQV. .TRUE.)
-      max = MAXVAL(data,MASK=useData .EQV. .TRUE.)
+      IF (PRESENT(forceMin)) THEN
+        min = forceMin
+      ELSE
+        min = MINVAL(data,MASK=useData .EQV. .TRUE.)
+      ENDIF
+
+      IF (PRESENT(forceMax)) THEN
+        max = forceMax
+      ELSE
+        max = MAXVAL(data,MASK=useData .EQV. .TRUE.)
+      ENDIF
+
       binEdges = linspace(min,max,N+1)
       binWidth = (max - min) / N
 

@@ -7,7 +7,7 @@ PROGRAM FepMovie
   IMPLICIT NONE
 
     CALL Startup()
-    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.FALSE.)
+    CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.TRUE.)
     CALL Driver()
     CALL CleanUp()  
 
@@ -17,15 +17,16 @@ PROGRAM FepMovie
 
   SUBROUTINE Driver
 
-    USE Data,   ONLY : mappingEnergies, lambda
-    USE Input,  ONLY : mask
-    USE Movies, ONLY : MakeFepMovie
-    USE MOvieOptions, ONLY : ProcessNameList
+    USE Data,   ONLY : mappingEnergies, energyGap, groundStateEnergy !, lambda
+    USE Input,  ONLY : mask, Nbins, minPop
+    USE Movies, ONLY : MakeFepusMovie
+    USE MovieOptions, ONLY : ProcessNameList
 
     IMPLICIT NONE
 
     CALL ProcessNameList
-    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=20)
+!    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=1)
+    CALL MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies(:,:,:,1),mask,Nbins,minPop,skip=1)
 
   END SUBROUTINE Driver
 

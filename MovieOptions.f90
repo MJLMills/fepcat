@@ -2,8 +2,8 @@ MODULE MovieOptions
 
   IMPLICIT NONE
 
-  NAMELIST /movie/  movieOutputDir, outputDataFilePrefix, plotShellScript, plotCommand, plotScript, genericDataFileName
-  CHARACTER(500) :: movieOutputDir, outputDataFilePrefix, plotShellScript, plotCommand, plotScript, genericDataFileName
+  NAMELIST /movie/  movieOutputDir, plotShellScript, plotCommand, plotScript, genericDataFileName
+  CHARACTER(500) :: movieOutputDir, plotShellScript, plotCommand, plotScript, genericDataFileName
 
   CONTAINS
 
@@ -30,7 +30,6 @@ MODULE MovieOptions
 
     ! usable defaults
     movieOutputDir       = "fep-movie-files"
-    outputDataFilePrefix = "FEP-FRAME"
     plotShellScript      = "makeMovie.sh"
     plotCommand          = "Rscript"
     plotScript           = "plot.r"
@@ -62,7 +61,6 @@ MODULE MovieOptions
 
     WRITE(logUnit,'(A)')   "* Movie Generation Settings *"; WRITE(logUnit,*)
     WRITE(logUnit,'(A,A)') "Output directory for movie data: ", TRIM(ADJUSTL(movieOutputDir))
-    WRITE(logUnit,'(A,A)') "Prefix for output data files:    ", TRIM(ADJUSTL(outputDataFilePrefix))
     WRITE(logUnit,'(A,A)') "Script to plot all data files:   ", TRIM(ADJUSTL(plotShellScript))
     WRITE(logUnit,'(A,A)') "Command for plotting data:       ", TRIM(ADJUSTL(plotCommand))
     WRITE(logUnit,'(A,A)') "Script for plotting data:        ", TRIM(ADJUSTL(plotScript))
