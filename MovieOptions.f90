@@ -2,14 +2,15 @@ MODULE MovieOptions
 
   IMPLICIT NONE
 
-  NAMELIST /movie/  movieOutputDir, plotShellScript, plotCommand, plotScript, genericDataFileName
-  CHARACTER(500) :: movieOutputDir, plotShellScript, plotCommand, plotScript, genericDataFileName
+  NAMELIST /movie/  movieOutputDir, plotShellScript, plotCommand, fepScript, fepusScript, genericDataFileName, skip
+  CHARACTER(500) :: movieOutputDir, plotShellScript, plotCommand, fepScript, fepusScript, genericDataFileName
+  INTEGER        :: skip
 
   CONTAINS
 
 !*
 
-  SUBROUTINE ProcessNameList
+  SUBROUTINE ProcessNameList()
 
     IMPLICIT NONE
 
@@ -32,8 +33,10 @@ MODULE MovieOptions
     movieOutputDir       = "fep-movie-files"
     plotShellScript      = "makeMovie.sh"
     plotCommand          = "Rscript"
-    plotScript           = "plot.r"
+    fepScript            = "plotFep.r"
+    fepusScript          = "plotFepus.r"
     genericDataFileName  = "data.csv"
+    skip = 1
 
     CALL OpenFile(nmlUnit,"movie.nml","read")
     READ(nmlUnit,NML=movie)
@@ -49,6 +52,7 @@ MODULE MovieOptions
 
     IF (movieOutputDir  == "") STOP "Blank output directory for movie data not valid"
     IF (plotShellScript == "") STOP "Blank movie generation script not valid"
+    IF (skip <= 0)             STOP "Skip parameter must be >= 1"
 
   END SUBROUTINE CheckNameList
 
@@ -59,12 +63,14 @@ MODULE MovieOptions
     USE Log, ONLY : logUnit
     IMPLICIT NONE
 
-    WRITE(logUnit,'(A)')   "* Movie Generation Settings *"; WRITE(logUnit,*)
-    WRITE(logUnit,'(A,A)') "Output directory for movie data: ", TRIM(ADJUSTL(movieOutputDir))
-    WRITE(logUnit,'(A,A)') "Script to plot all data files:   ", TRIM(ADJUSTL(plotShellScript))
-    WRITE(logUnit,'(A,A)') "Command for plotting data:       ", TRIM(ADJUSTL(plotCommand))
-    WRITE(logUnit,'(A,A)') "Script for plotting data:        ", TRIM(ADJUSTL(plotScript))
-    WRITE(logUnit,'(A,A)') "Name for generic data file:      ", TRIM(ADJUSTL(genericDataFileName))
+    WRITE(logUnit,'(A)')      "* Movie Generation Settings *"; WRITE(logUnit,*)
+    WRITE(logUnit,'(A,A)')    "Output directory for movie data: ", TRIM(ADJUSTL(movieOutputDir))
+    WRITE(logUnit,'(A,A)')    "Script to plot all data files:   ", TRIM(ADJUSTL(plotShellScript))
+    WRITE(logUnit,'(A,A)')    "Command for plotting data:       ", TRIM(ADJUSTL(plotCommand))
+    WRITE(logUnit,'(A,A)')    "Script for plotting FEP data:    ", TRIM(ADJUSTL(fepScript))
+    WRITE(logUnit,'(A,A)')    "Script for plotting FEP/US data: ", TRIM(ADJUSTL(fepusScript))
+    WRITE(logUnit,'(A,A)')    "Name for generic data file:      ", TRIM(ADJUSTL(genericDataFileName))
+    WRITE(logUnit,'(A,I0.4)') "Step between data points:        ", skip
     WRITE(logUnit,*)
 
   END SUBROUTINE PrintNameList

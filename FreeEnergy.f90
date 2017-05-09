@@ -55,13 +55,13 @@ MODULE FreeEnergy
       INTEGER, INTENT(IN)            :: binPopulations(:,:), binIndices(:,:)
       INTEGER, INTENT(IN)            :: minPop
 
-      REAL(8), INTENT(OUT), OPTIONAL :: PMF2Dout(SIZE(binPopulations,1),SIZE(G_FEP))
+      REAL(8), INTENT(OUT), OPTIONAL :: PMF2Dout(SIZE(binPopulations,1),SIZE(mappingEnergies,2))
       REAL(8), INTENT(OUT)           :: PMF1D(SIZE(binPopulations,1))
       LOGICAL, INTENT(OUT), OPTIONAL :: useBin(SIZE(binPopulations,1))
       INTEGER                        :: Nbins, NfepSteps, NtimeSteps   ! Totals
       INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
       REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(mappingEnergies,2))
-      LOGICAL, PARAMETER :: debug = .TRUE.
+      LOGICAL, PARAMETER :: debug = .FALSE.
 
       IF (debug) THEN
 
@@ -74,11 +74,14 @@ MODULE FreeEnergy
         WRITE(*,'(A,I6)')       "Received G_FEP of dimension           ", SIZE(G_FEP)
         WRITE(*,'(A,I6,I6)')    "Received binPopulations of dimension  ", SIZE(binPopulations,1),  SIZE(binPopulations,2)
         WRITE(*,'(A,I6,I6)')    "Received binIndices of dimension      ", SIZE(binIndices,1),      SIZE(binIndices,2)
+        WRITE(*,*)
+        WRITE(*,'(A,I6)')       "Outputting PMF1D of dimension         ", SIZE(PMF1D)
+        IF (PRESENT(useBin)) WRITE(*,'(A,I6)') "Outputting PMF1D of dimension", SIZE(useBin)
 
       ENDIF  
 
       IF (PRESENT(useBin)) useBin(:)  = .FALSE.
-      Nbins      = SIZE(binPopulations,1)  !;  WRITE(*,*) "Num. Bins:     ", Nbins
+      Nbins      = SIZE(binPopulations,1)  !; WRITE(*,*) "Num. Bins:     ", Nbins
       NfepSteps  = SIZE(mappingEnergies,2) !; WRITE(*,*) "Num. Fepsteps: ", Nfepsteps
       NtimeSteps = SIZE(mappingEnergies,1) !; WRITE(*,*) "Num. Timesteps:", Ntimesteps
 
@@ -263,61 +266,67 @@ MODULE FreeEnergy
 
 !*
 
-    SUBROUTINE Histogram(data,useData,N,binPopulations,binIndices,binMidpoints,forceMin,forceMax)
+    SUBROUTINE Histogram(data,mask,N,binPopulations,binIndices,binMidpoints,inMin,inMax)
 
       ! #DES: Generate a histogram along the reaction coordinate
 
       USE ArrayUtil, ONLY : linspace
       IMPLICIT NONE
 
-      INTEGER, INTENT(IN)  :: N                   ! Number of bins
-      REAL(8), INTENT(IN)  :: data(:,:)           ! values to histogram: nFep x nTimesteps
-      LOGICAL, INTENT(IN)  :: useData(:,:)        ! mask for data values
-      REAL(8), INTENT(IN), OPTIONAL  :: forceMax, forceMin  ! force the histogram range if desired
-      INTEGER, INTENT(OUT) :: binPopulations(:,:)
-      INTEGER, INTENT(OUT) :: binIndices(:,:)
-      REAL(8), INTENT(OUT) :: binMidpoints(:)
+      INTEGER, INTENT(IN)            :: N            ! Number of bins
+      REAL(8), INTENT(IN)            :: data(:,:)    ! values to histogram: nFep x nTimesteps
+      LOGICAL, INTENT(IN)            :: mask(:,:) ! mask for data values
+      REAL(8), INTENT(IN), OPTIONAL  :: inMin, inMax ! set the histogram range, overrides default values determined from masked data(:,:)
+
+      INTEGER, INTENT(OUT) :: binPopulations(:,:) ! Number of points in each bin from each FEP simulation
+      INTEGER, INTENT(OUT) :: binIndices(:,:)     ! Bin index of each data point indexed by FEP step and timestep
+      REAL(8), INTENT(OUT) :: binMidpoints(:)     ! Midpoints of each bin (used as x-value for bin)
 
       LOGICAL, PARAMETER :: DEBUG = .FALSE.
-      REAL(8) :: min, max, binWidth, binEdges(N+1)
+
+      REAL(8) :: min, max, binWidth, halfBinWidth, binEdges(N+1)
       INTEGER :: bin, fepstep, timestep
 
-      IF (PRESENT(forceMin)) THEN
-        min = forceMin
+      IF (PRESENT(inMin)) THEN
+        min = inMin
       ELSE
-        min = MINVAL(data,MASK=useData .EQV. .TRUE.)
+        min = MINVAL(data,MASK=mask .EQV. .TRUE.)
       ENDIF
 
-      IF (PRESENT(forceMax)) THEN
-        max = forceMax
+      IF (PRESENT(inMax)) THEN
+        max = inMax
       ELSE
-        max = MAXVAL(data,MASK=useData .EQV. .TRUE.)
+        max = MAXVAL(data,MASK=mask .EQV. .TRUE.)
       ENDIF
 
       binEdges = linspace(min,max,N+1)
       binWidth = (max - min) / N
 
-      DO bin = 1, N
-        binMidpoints(bin) = binEdges(bin) + (binWidth / 2.0d0)
-      ENDDO
+      halfBinWidth = binWidth / 2.0d0
+      binMidpoints(:) = binEdges(:) + halfBinWidth
 
-      binIndices(:,:) = 0
+      binIndices(:,:)     = 0
       binPopulations(:,:) = 0
       DO fepstep = 1, SIZE(data,1)
         DO timestep = 1, SIZE(data,2)
-          IF (useData(fepstep,timestep)) THEN
+          IF (mask(fepstep,timestep) .EQV. .TRUE.) THEN
+
             bin = FLOOR((data(fepstep,timestep) - min) / binWidth) + 1
-            binIndices(fepstep,timestep) = bin
-            IF (bin > N) THEN !max value located
+
+            IF (bin == N+1) THEN !max value located
               binPopulations(N,fepstep) = binPopulations(N,fepstep) + 1
               binIndices(fepstep,timestep) = N
+            ELSE IF (bin < 0 .OR. bin > N+1) THEN
+              WRITE(*,'(A)') "WARNING: Histogram - true-masked data point not binned"
             ELSE
               binPopulations(bin,fepstep) = binPopulations(bin,fepstep) + 1
               binIndices(fepstep,timestep) = bin
             ENDIF
+
           ENDIF
         ENDDO
       ENDDO
+
 
       IF (DEBUG) THEN
 
@@ -426,7 +435,7 @@ MODULE FreeEnergy
       INTEGER, INTENT(IN) :: A, B
       REAL(8), INTENT(IN) :: mappingEnergies(:,:,:) !timesteps, fepsteps, fepsteps
       LOGICAL, INTENT(IN) :: mask(:,:)
-      REAL(8), INTENT(OUT) :: profile(SIZE(mappingEnergies,2))
+      REAL(8), INTENT(OUT) :: profile(B-A+1)
 
       REAL(8) :: increments(SIZE(mappingEnergies,2)-1)
       INTEGER :: step

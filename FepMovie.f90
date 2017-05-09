@@ -15,18 +15,25 @@ PROGRAM FepMovie
 
 !*
 
-  SUBROUTINE Driver
+  SUBROUTINE Driver()
 
-    USE Data,   ONLY : mappingEnergies, energyGap, groundStateEnergy !, lambda
-    USE Input,  ONLY : mask, Nbins, minPop
-    USE Movies, ONLY : MakeFepusMovie
-    USE MovieOptions, ONLY : ProcessNameList
+    USE Data,   ONLY       : mappingEnergies, energyGap, groundStateEnergy, lambda
+    USE Input,  ONLY       : mask, Nbins, minPop
+    USE FileIO, ONLY       : OpenFile, CloseFile
+    USE Movies, ONLY       : MakeFepMovie, MakeFepUsMovie
+    USE MovieOptions, ONLY : ProcessNameList, movieOutputDir, plotShellScript
 
     IMPLICIT NONE
+    INTEGER, PARAMETER :: shUnit = 87
 
-    CALL ProcessNameList
-!    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),skip=1)
-    CALL MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies(:,:,:,1),mask,Nbins,minPop,skip=1)
+    CALL ProcessNameList()
+    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//"/"//TRIM(ADJUSTL(plotShellScript)),"write")
+    WRITE(shUnit,'(A)') "rm list.dat"
+
+    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),shUnit)
+    CALL MakeFepusMovie(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask,Nbins,minPop,shUnit)
+
+    CALL CloseFile(shUnit)
 
   END SUBROUTINE Driver
 

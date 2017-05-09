@@ -10,69 +10,65 @@ MODULE Movies
 
 !*
 
-  SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda,skip)
+  SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda,shUnit)
 
     ! #DES: Run FEP procedure for multiple points in the total simulation and
     !       print data for movie frames
 
-    USE FileIO, ONLY       : OpenFile, CloseFile
     USE FreeEnergy, ONLY   : ComputeFEPProfile
-    USE MovieOptions, ONLY : movieOutputDir, plotShellScript
+    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, skip, fepScript
 
     IMPLICIT NONE
 
     REAL(8),       INTENT(IN) :: mappingEnergies(:,:,:), lambda(:)
     LOGICAL,       INTENT(IN) :: mask(:,:)
-    INTEGER,       INTENT(IN) :: skip
+    INTEGER,       INTENT(IN) :: shUnit
 
-    INTEGER,       PARAMETER  :: shUnit = 87
     CHARACTER(3),  PARAMETER  :: extension = "csv"
 
-    REAL(8)        :: output(SIZE(mappingEnergies,2),2), dG(SIZE(mappingEnergies,2))
+    REAL(8)        :: output(SIZE(mappingEnergies,2),2) !, dG(SIZE(mappingEnergies,2))
+    LOGICAL        :: timeMask(SIZE(mask,1),SIZE(mask,2))
     CHARACTER(100) :: outFileName, imageFileName
-    INTEGER        :: fepstep, timestep
+    INTEGER        :: fepstep, timestep, nFepSteps
 
-    output(:,1) = lambda(:)
+    output(:,1) = lambda(:); output(:,2) = 0.0d0
+    timeMask(:,:) = .FALSE.
+    nFepSteps = SIZE(mappingEnergies,2)
 
-    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(plotShellScript)),"write")
-    WRITE(shUnit,*) "rm list.dat"
-
-    DO fepstep = 1, SIZE(mappingEnergies,2) ! only work on the current fepstep
+    DO fepstep = 1, nFepSteps
 
       DO timestep = 1, SIZE(mappingEnergies,1), skip
 
-        CALL ComputeFEPProfile(1,fepstep,mappingEnergies(1:timestep,:,:),mask(:,1:timestep),dG(:))
-        output(fepstep,2) = dG(fepstep)
+        WHERE(mask(1:fepstep,1:timestep) .EQV. .TRUE.) timeMask(1:fepstep,1:timestep) = .TRUE.
+        CALL ComputeFEPProfile(1,fepstep,mappingEnergies(:,:,:),timeMask(:,:),output(1:fepstep,2))
 
         outFileName   = createFileName(fepstep,timestep,fepPrefix,extension)
         imageFileName = createFileName(fepstep,timestep,fepPrefix,"png")
         CALL WriteFepDataFrame(output,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(outFileName)))
-        CALL WriteShellCommands(outFileName,imageFileName,shUnit)
+        CALL WriteShellCommands(outFileName,imageFileName,fepScript,shUnit)
 
       ENDDO
 
     ENDDO
 
-    CALL CloseFile(shUnit)    
-
   END SUBROUTINE MakeFepMovie
 
 !*
 
-  SUBROUTINE MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,skip)
+  SUBROUTINE MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,shUnit)
 
-    USE MovieOptions, ONLY : movieOutputDir, plotShellScript
+    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, skip, fepusScript
     USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
 
     IMPLICIT NONE
 
     REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
     LOGICAL, INTENT(IN) :: mask(:,:)
-    INTEGER, INTENT(IN) :: Nbins, minPop, skip
+    INTEGER, INTENT(IN) :: Nbins, minPop, shUnit
 
     CHARACTER(3),  PARAMETER  :: extension = "csv"
 
-    CHARACTER(100) :: outFileName
+    CHARACTER(100) :: outFileName, imageFileName
     INTEGER      :: binPopulations(Nbins,SIZE(energyGap,1)), binIndices(SIZE(energyGap,1),SIZE(energyGap,2))
     REAL(8)      :: binMidpoints(Nbins)
     REAL(8)      :: binGg(Nbins)  
@@ -113,7 +109,9 @@ MODULE Movies
 
         ! Then call the FepUs routine on the partial data
         ! When the number of timesteps is not complete, some data comes back as infinite
-        CALL FepUS(mappingEnergies(1:timestep,1:fepstep,1:fepstep),groundStateEnergy(1:timestep,1:fepstep),G_FEP(:),binPopulations(:,1:fepstep),binIndices(1:fepstep,1:timestep),PMF1D=binGg(:),minPop=minPop,useBin=printBin(:))
+ 
+        ! This is not correct because of the first argument to FepUS. For all fepsteps prior to the current fepstep ALL timestep data should be passed.
+        CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP(:),binPopulations(:,:),binIndices(:,:),PMF1D=binGg(:),minPop=minPop,useBin=printBin(:))
 
         output(:,2) = 0.0d0
         DO bin = 1, nBins
@@ -122,8 +120,10 @@ MODULE Movies
           ENDIF
         ENDDO
 
+        imageFileName = createFileName(fepstep,timestep,fepusPrefix,"png")
         outFileName = createFileName(fepstep,timestep,fepusPrefix,extension)
         CALL WriteFepusDataFrame(output,TRIM(ADJUSTL(movieOutputDir))//sep//outFileName)
+        CALL WriteShellCommands(outFileName,imageFileName,fepusScript,shUnit)
 
       END DO
     END DO
@@ -185,13 +185,13 @@ MODULE Movies
 
 !*
 
-  SUBROUTINE WriteShellCommands(fileName,imageName,unit)
+  SUBROUTINE WriteShellCommands(fileName,imageName,plotScript,unit)
 
-    USE MovieOptions, ONLY : genericDataFileName, plotCommand, plotScript
+    USE MovieOptions, ONLY : genericDataFileName, plotCommand
 
     IMPLICIT NONE
 
-    CHARACTER(*), INTENT(IN) :: fileName, imageName
+    CHARACTER(*), INTENT(IN) :: fileName, imageName, plotScript
     INTEGER, INTENT(IN)      :: unit
 
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(fileName))//" "//TRIM(ADJUSTL(genericDataFileName))
