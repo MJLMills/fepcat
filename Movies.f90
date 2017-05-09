@@ -5,12 +5,38 @@ MODULE Movies
   CHARACTER(1),  PARAMETER :: sep = "/" ! unix-based only
   CHARACTER(10), PARAMETER :: fepPrefix   = "FEP-frame_"
   CHARACTER(12), PARAMETER :: fepusPrefix = "FEPUS-frame_"
+  INTEGER, PARAMETER :: shUnit = 87
 
   CONTAINS
 
 !*
 
-  SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda,shUnit)
+  SUBROUTINE SetupMovies()
+
+    USE MovieOptions, ONLY : ProcessNameList, movieOutputDir, plotShellScript
+    USE FileIO, ONLY : OpenFile
+    IMPLICIT NONE
+
+    CALL ProcessNameList()
+    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//"/"//TRIM(ADJUSTL(plotShellScript)),"write")
+    WRITE(shUnit,'(A)') "rm list.dat"    
+
+  END SUBROUTINE SetupMovies
+
+!*
+
+  SUBROUTINE TeardownMovies()
+
+    USE FileIO, ONLY : CloseFile
+    IMPLICIT NONE
+
+    CALL CloseFile(shUnit)
+
+  END SUBROUTINE TeardownMovies
+
+!*
+
+  SUBROUTINE MakeFepMovie(mappingEnergies,mask,lambda)
 
     ! #DES: Run FEP procedure for multiple points in the total simulation and
     !       print data for movie frames
@@ -22,7 +48,6 @@ MODULE Movies
 
     REAL(8),       INTENT(IN) :: mappingEnergies(:,:,:), lambda(:)
     LOGICAL,       INTENT(IN) :: mask(:,:)
-    INTEGER,       INTENT(IN) :: shUnit
 
     CHARACTER(3),  PARAMETER  :: extension = "csv"
 
@@ -55,7 +80,7 @@ MODULE Movies
 
 !*
 
-  SUBROUTINE MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop,shUnit)
+  SUBROUTINE MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop)
 
     USE MovieOptions, ONLY : movieOutputDir, plotShellScript, skip, fepusScript
     USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
@@ -64,7 +89,7 @@ MODULE Movies
 
     REAL(8), INTENT(IN) :: energyGap(:,:), groundStateEnergy(:,:), mappingEnergies(:,:,:)
     LOGICAL, INTENT(IN) :: mask(:,:)
-    INTEGER, INTENT(IN) :: Nbins, minPop, shUnit
+    INTEGER, INTENT(IN) :: Nbins, minPop
 
     CHARACTER(3),  PARAMETER  :: extension = "csv"
 
@@ -107,10 +132,6 @@ MODULE Movies
 &                      MINVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.), &
 &                      MAXVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.))
 
-        ! Then call the FepUs routine on the partial data
-        ! When the number of timesteps is not complete, some data comes back as infinite
- 
-        ! This is not correct because of the first argument to FepUS. For all fepsteps prior to the current fepstep ALL timestep data should be passed.
         CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP(:),binPopulations(:,:),binIndices(:,:),PMF1D=binGg(:),minPop=minPop,useBin=printBin(:))
 
         output(:,2) = 0.0d0

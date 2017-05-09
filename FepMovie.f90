@@ -9,7 +9,7 @@ PROGRAM FepMovie
     CALL Startup()
     CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.TRUE.)
     CALL Driver()
-    CALL CleanUp()  
+    CALL CleanUp()
 
   CONTAINS
 
@@ -20,20 +20,14 @@ PROGRAM FepMovie
     USE Data,   ONLY       : mappingEnergies, energyGap, groundStateEnergy, lambda
     USE Input,  ONLY       : mask, Nbins, minPop
     USE FileIO, ONLY       : OpenFile, CloseFile
-    USE Movies, ONLY       : MakeFepMovie, MakeFepUsMovie
-    USE MovieOptions, ONLY : ProcessNameList, movieOutputDir, plotShellScript
+    USE Movies, ONLY       : SetupMovies, TeardownMovies, MakeFepMovie, MakeFepUsMovie
 
     IMPLICIT NONE
-    INTEGER, PARAMETER :: shUnit = 87
 
-    CALL ProcessNameList()
-    CALL OpenFile(shUnit,TRIM(ADJUSTL(movieOutputDir))//"/"//TRIM(ADJUSTL(plotShellScript)),"write")
-    WRITE(shUnit,'(A)') "rm list.dat"
-
-    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),shUnit)
-    CALL MakeFepusMovie(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask,Nbins,minPop,shUnit)
-
-    CALL CloseFile(shUnit)
+    CALL SetupMovies()
+    CALL MakeFepMovie(mappingEnergies(:,:,:,1),mask(:,:),lambda(:))
+    CALL MakeFepusMovie(energyGap(:,:),groundStateEnergy(:,:),mappingEnergies(:,:,:,1),mask,Nbins,minPop)
+    CALL TeardownMovies()
 
   END SUBROUTINE Driver
 

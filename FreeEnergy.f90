@@ -98,7 +98,6 @@ MODULE FreeEnergy
           ENDDO
         ENDDO
       ENDDO
-      ! works to here provided slices of binIndices, targetEnergy and mappingEnergy are provided
 
       WHERE (binPopulations(:,:) > 0) PMF2D(:,:) = PMF2D(:,:) / binPopulations(:,:)
 
@@ -131,7 +130,10 @@ MODULE FreeEnergy
         IF (popSum > 0) THEN
           PMF1D(bin) = PMF1D(bin) / popSum
           IF (PRESENT(useBin)) useBin(bin) = .TRUE.
-        ENDIF
+        ELSE
+          PMF1D(bin) = 0.0d0
+          IF (PRESENT(useBin)) useBin(bin) = .FALSE.
+       ENDIF
       ENDDO
 
     ENDSUBROUTINE FepUs
