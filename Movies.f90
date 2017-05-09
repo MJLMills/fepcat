@@ -215,6 +215,7 @@ MODULE Movies
     CHARACTER(*), INTENT(IN) :: fileName, imageName, plotScript
     INTEGER, INTENT(IN)      :: unit
 
+    WRITE(unit,'(A)') "echo "//TRIM(ADJUSTL(fileName))
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(fileName))//" "//TRIM(ADJUSTL(genericDataFileName))
     WRITE(unit,'(A)') TRIM(ADJUSTL(plotCommand))//" "//TRIM(ADJUSTL(plotScript))
     WRITE(unit,'(A)') "mv "//TRIM(ADJUSTL(genericDataFileName))//" "//TRIM(ADJUSTL(fileName))
