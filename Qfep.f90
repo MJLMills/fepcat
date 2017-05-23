@@ -9,7 +9,7 @@ PROGRAM Qfep
   IMPLICIT NONE
   INTEGER, PARAMETER :: outUnit = 64
 
-    CALL Startup()
+    CALL Startup(readCoords=.FALSE.)
     CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords=.FALSE.,doFEPUS=.TRUE.)
     CALL QFepAnalysis()
     CALL CleanUp()

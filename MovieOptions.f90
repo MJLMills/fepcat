@@ -2,9 +2,9 @@ MODULE MovieOptions
 
   IMPLICIT NONE
 
-  NAMELIST /movie/  movieOutputDir, plotShellScript, plotCommand, fepScript, fepusScript, genericDataFileName, skip
+  NAMELIST /movie/  movieOutputDir, plotShellScript, plotCommand, fepScript, fepusScript, genericDataFileName, moviestep
   CHARACTER(500) :: movieOutputDir, plotShellScript, plotCommand, fepScript, fepusScript, genericDataFileName
-  INTEGER        :: skip
+  INTEGER        :: moviestep
 
   CONTAINS
 
@@ -36,7 +36,7 @@ MODULE MovieOptions
     fepScript            = "plotFep.r"
     fepusScript          = "plotFepus.r"
     genericDataFileName  = "data.csv"
-    skip = 1
+    moviestep = 1
 
     CALL OpenFile(nmlUnit,"movie.nml","read")
     READ(nmlUnit,NML=movie)
@@ -52,7 +52,7 @@ MODULE MovieOptions
 
     IF (movieOutputDir  == "") STOP "Blank output directory for movie data not valid"
     IF (plotShellScript == "") STOP "Blank movie generation script not valid"
-    IF (skip <= 0)             STOP "Skip parameter must be >= 1"
+    IF (moviestep <= 0)             STOP "Skip parameter must be >= 1"
 
   END SUBROUTINE CheckNameList
 
@@ -70,7 +70,7 @@ MODULE MovieOptions
     WRITE(logUnit,'(A,A)')    "Script for plotting FEP data:    ", TRIM(ADJUSTL(fepScript))
     WRITE(logUnit,'(A,A)')    "Script for plotting FEP/US data: ", TRIM(ADJUSTL(fepusScript))
     WRITE(logUnit,'(A,A)')    "Name for generic data file:      ", TRIM(ADJUSTL(genericDataFileName))
-    WRITE(logUnit,'(A,I0.4)') "Step between data points:        ", skip
+    WRITE(logUnit,'(A,I0.4)') "Step between movie data points:  ", moviestep
     WRITE(logUnit,*)
 
   END SUBROUTINE PrintNameList

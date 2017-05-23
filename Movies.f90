@@ -42,7 +42,7 @@ MODULE Movies
     !       print data for movie frames
 
     USE FreeEnergy, ONLY   : ComputeFEPProfile
-    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, skip, fepScript
+    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, moviestep, fepScript
 
     IMPLICIT NONE
 
@@ -54,20 +54,25 @@ MODULE Movies
     REAL(8)        :: output(SIZE(mappingEnergies,2),2) !, dG(SIZE(mappingEnergies,2))
     LOGICAL        :: timeMask(SIZE(mask,1),SIZE(mask,2))
     CHARACTER(100) :: outFileName, imageFileName
-    INTEGER        :: fepstep, timestep, nFepSteps
+    INTEGER        :: fepstep, timestep, nFepSteps, i
+    REAL(8)        :: minPrinted, maxPrinted
 
+    minPrinted = HUGE(0.d0); maxPrinted = TINY(0.0d0)
     output(:,1) = lambda(:); output(:,2) = 0.0d0
     timeMask(:,:) = .FALSE.
     nFepSteps = SIZE(mappingEnergies,2)
 
     DO fepstep = 1, nFepSteps
 
-      DO timestep = 1, SIZE(mappingEnergies,1), skip
+      DO timestep = 1, SIZE(mappingEnergies,1), moviestep
 
         WHERE(mask(1:fepstep,1:timestep) .EQV. .TRUE.) timeMask(1:fepstep,1:timestep) = .TRUE.
         CALL ComputeFEPProfile(1,fepstep,mappingEnergies(:,:,:),timeMask(:,:),output(1:fepstep,2))
-
         outFileName   = createFileName(fepstep,timestep,fepPrefix,extension)
+        DO i = 1, fepstep
+          IF (output(fepstep,2) < minPrinted) minPrinted = output(fepstep,2)
+          IF (output(fepstep,2) > maxPrinted) maxPrinted = output(fepstep,2)
+        ENDDO
         imageFileName = createFileName(fepstep,timestep,fepPrefix,"png")
         CALL WriteFepDataFrame(output,TRIM(ADJUSTL(movieOutputDir))//sep//TRIM(ADJUSTL(outFileName)))
         CALL WriteShellCommands(outFileName,imageFileName,fepScript,shUnit)
@@ -76,14 +81,40 @@ MODULE Movies
 
     ENDDO
 
+    WRITE(*,*) "FEP Movie min and max", minPrinted, maxPrinted
+
   END SUBROUTINE MakeFepMovie
+
+!*
+
+  SUBROUTINE WriteHistogram(binPopulations,binMidpoints)
+
+    IMPLICIT NONE
+
+    INTEGER, INTENT(IN) :: binPopulations(:,:)
+    REAL(8), INTENT(IN) :: binMidpoints(:)
+    INTEGER :: bin, step
+
+    WRITE(*,*) "HISTOGRAM"; WRITE(*,*)
+
+    DO bin = 1, SIZE(binMidpoints)
+      WRITE(*,'(I5,F8.2,I5)',ADVANCE='NO') bin, binMidpoints(bin), SUM(binPopulations(bin,:))
+      DO step = 1, SIZE(binPopulations,2)
+        WRITE(*,'(I4)',ADVANCE='NO') binPopulations(bin,step)
+      ENDDO
+      WRITE(*,*)
+    ENDDO
+
+    WRITE(*,*)
+
+  END SUBROUTINE WriteHistogram
 
 !*
 
   SUBROUTINE MakeFepusMovie(energyGap,groundStateEnergy,mappingEnergies,mask,Nbins,minPop)
 
-    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, skip, fepusScript
-    USE FreeEnergy, ONLY : Histogram, ComputeFepProfile, FepUS
+    USE MovieOptions, ONLY : movieOutputDir, plotShellScript, moviestep, fepusScript
+    USE FreeEnergy,   ONLY : Histogram, ComputeFepProfile, FepUS
 
     IMPLICIT NONE
 
@@ -100,23 +131,14 @@ MODULE Movies
     REAL(8)      :: G_FEP(SIZE(energyGap,1))
     LOGICAL      :: printBin(Nbins)
     INTEGER      :: bin
-    REAL(8)      :: output(Nbins,2)
+    REAL(8)      :: output(Nbins,2), minRC, maxRC, printMin, printMax
     INTEGER      :: fepstep, timestep
 
-    ! There will be Nbins bins in the histogram. For those bins that contain no points want to write zeros to the output file.
-    ! Start by making the histogram using all of the data.
-    ! energyGap(nFepSteps,nTimeSteps) is the reaction coordinate data for the simulation period of interest.
-    ! mask(nFepSteps,nTimesteps) is the on/off switches for each piece of data.
-    ! the histogram routine looks at the data you give it and returns the populations of each bin from each fepstep, 
-    ! the index of which bin each point is in (fep,time -> bin) and the x-value associated with each bin (i -> RC_i)
-    ! I want to force the x-axis to be the same for every run, so need the binMidpoints to reflect the full data set.
+    minRC = MINVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.)
+    maxRC = MAXVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.)
+    printMin = HUGE(0.0d0); printMax = TINY(0.0d0)
 
-    ! These are set to the size of the complete data set and can be sliced appropriately.
-    CALL Histogram(energyGap(:,:),mask(:,:),Nbins,binPopulations(:,:),binIndices(:,:),binMidpoints(:))
-    output(:,1) = binMidpoints(:)
-
-    ! Separately, can calculate the accurate dG values associated with each value of lambda via FEP
-    ! This is a choice, these could also be updated with the PMF in the following loops.
+    CALL Histogram(energyGap(:,:),mask(:,:),Nbins,binPopulations(:,:),binIndices(:,:),output(:,1))
     CALL ComputeFEPProfile(1,SIZE(mappingEnergies,2),mappingEnergies(:,:,:),mask(:,:),profile=G_FEP(:))
 
     binPopulations(:,:) = 0;
@@ -125,19 +147,26 @@ MODULE Movies
 
     DO fepstep = 1, SIZE(mappingEnergies,2) ! only work on the current fepstep
 
-      DO timestep = 1, SIZE(mappingEnergies,1), skip
+      DO timestep = 1, SIZE(mappingEnergies,1), moviestep
 
-        ! Add the contributions from this fepstep from 1:timestep to the binPopulations and binIndices arrays, forcing the range of the x-axis
-        CALL Histogram(energyGap(fepstep:fepstep,1:timestep),mask(fepstep:fepstep,1:timestep),Nbins,binPopulations(:,fepstep:fepstep),binIndices(fepstep:fepstep,1:timestep),binMidpoints(:), &
-&                      MINVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.), &
-&                      MAXVAL(energyGap(:,:),MASK=mask .EQV. .TRUE.))
+        CALL Histogram(energyGap(fepstep:fepstep,1:timestep),         &
+        &              mask(fepstep:fepstep,1:timestep), Nbins,       &
 
-        CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP(:),binPopulations(:,:),binIndices(:,:),PMF1D=binGg(:),minPop=minPop,useBin=printBin(:))
+        &              binPopulations(1:nBins,fepstep:fepstep),       & ! These are to be computed, determine which bins the fepstep data go into
+        &              binIndices(fepstep:fepstep,1:timestep),        & ! and count them. binMidpoints is returned but not required - waste of time.
+        &              binMidpoints(1:nBins),                         & ! Force the histogram to range over the complete RC
+        &              minRC, maxRC)
 
+        ! At this point the mask is implicit in the binIndices - no simulation data past the current fepstep,timestep should have non-zero indices
+        CALL FepUS(mappingEnergies(:,:,:),groundStateEnergy(:,:),G_FEP,binPopulations(:,:),binIndices(:,:),PMF1D=binGg(:),minPop=minPop,useBin=printBin(:))
+
+        ! Print zeros for any non-significant histogram bins
         output(:,2) = 0.0d0
         DO bin = 1, nBins
           IF (printBin(bin) .EQV. .TRUE.) THEN
             output(bin,2) = binGg(bin)
+            IF (output(bin,2) > printMax) printMax = output(bin,2)
+            IF (output(bin,2) < printMin) printMin = output(bin,2)
           ENDIF
         ENDDO
 
@@ -148,6 +177,8 @@ MODULE Movies
 
       END DO
     END DO
+
+    WRITE(*,*) "FEP/US min and max", printMin, printMax
 
   END SUBROUTINE MakeFepusMovie
 

@@ -42,6 +42,7 @@ CONTAINS
     IF (ios /= 0) STOP "Failed to open unformatted trajectory file"
 
     CALL parseHeader(dcdUnit,debug,nAtoms,nTimesteps)
+    nTimesteps = nTimesteps - 1
 
     ALLOCATE(data(3,nAtoms,nTimesteps))
     DO timestep = 1, nTimesteps
@@ -51,7 +52,7 @@ CONTAINS
       ENDDO
     ENDDO
 
-    Coordinates = data
+    coordinates(:,:,:) = data(:,:,:)
 
     IF (ALLOCATED(data)) DEALLOCATE(data)
 

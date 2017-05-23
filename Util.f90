@@ -5,7 +5,7 @@ MODULE Util
 
   CONTAINS
 
-    SUBROUTINE Startup()
+    SUBROUTINE Startup(readCoords)
 
       ! #DES: Setup the calculation by creating a log file and reading the necessary input.
 
@@ -13,7 +13,7 @@ MODULE Util
       USE Input, ONLY : ReadInput
 
       IMPLICIT NONE
-      LOGICAL, PARAMETER :: readCoords = .FALSE.
+      LOGICAL, INTENT(IN) :: readCoords
 
         CALL CreateLogFile()
         CALL ReadInput(readCoords)

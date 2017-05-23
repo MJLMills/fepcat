@@ -8,7 +8,7 @@ PROGRAM Fep
 
   IMPLICIT NONE
 
-    CALL Startup()
+    CALL Startup(readCoords=.FALSE.)
     CALL ComputeDerivedData(logUnit,doTiming=.FALSE.,readCoords =.FALSE.,doFEPUS=.FALSE.)
     CALL FepAnalysis()
     CALL CleanUp()  

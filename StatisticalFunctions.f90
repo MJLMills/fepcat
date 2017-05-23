@@ -299,9 +299,12 @@ CONTAINS
       error(step) = StDevMeanError(c0prime,nPrime)
 
       !WRITE(*,*) T(step) + 1, sigma(step), error(step)
-      IF ((converged .EQV. .FALSE.) .AND. (ABS(sigma(step) - sigma(step-1)) < error(step-1))) THEN
-        finalValue = sigma(step)
-        converged = .TRUE.
+
+      IF (step > 1) THEN
+        IF ((converged .EQV. .FALSE.) .AND. (ABS(sigma(step) - sigma(step-1)) < error(step-1))) THEN
+          finalValue = sigma(step)
+          converged = .TRUE.
+        ENDIF
       ENDIF
 
       ALLOCATE(copy(SIZE(xPrime))); copy(:) = xPrime(:)

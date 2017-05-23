@@ -132,7 +132,7 @@ MODULE Input
       nTimesteps(:) = fileLengths(fileNames)
       nTimeSteps(:) = nTimesteps(:) / nStates
       DO step = 1, nFepSteps
-        mask(step,nTimesteps(step)+1:maxTimesteps) = .FALSE.
+        IF (ALLOCATED(mask)) mask(step,nTimesteps(step)+1:maxTimesteps) = .FALSE.
       ENDDO
       maxTimesteps = MAXVAL(nTimesteps)
 

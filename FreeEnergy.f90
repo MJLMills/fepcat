@@ -61,6 +61,7 @@ MODULE FreeEnergy
       INTEGER                        :: Nbins, NfepSteps, NtimeSteps   ! Totals
       INTEGER                        :: bin, fepstep, timestep, popSum ! Indices and Counts
       REAL(8)                        :: PMF2D(SIZE(binPopulations,1),SIZE(mappingEnergies,2))
+      REAL(8) :: fepFactor(SIZE(mappingEnergies,2))
       LOGICAL, PARAMETER :: debug = .FALSE.
 
       IF (debug) THEN
@@ -85,6 +86,11 @@ MODULE FreeEnergy
       NfepSteps  = SIZE(mappingEnergies,2) !; WRITE(*,*) "Num. Fepsteps: ", Nfepsteps
       NtimeSteps = SIZE(mappingEnergies,1) !; WRITE(*,*) "Num. Timesteps:", Ntimesteps
 
+      fepFactor(:) = 0.0d0;
+      DO fepstep = 1, SIZE(G_FEP)
+        fepFactor(fepstep) = -1.0d0 * beta * G_FEP(fepstep)
+      ENDDO
+
       ! Compute the free energy for the target potential for each populated bin
       ! This generates the Q-style 2D PMF where information from each fepstep is retained separately.
 
@@ -93,6 +99,7 @@ MODULE FreeEnergy
         DO fepstep = 1, NfepSteps     ! check each FEP simulation
           DO timestep = 1, NtimeSteps ! if this timestep of this FEP step is in the bin
             IF (binIndices(fepstep,timestep) == bin) THEN
+              ! exponents need to be checked here to make sure spurious zeros aren't created
               PMF2D(bin,fepstep) = PMF2D(bin,fepstep) + EXP( -1.0d0 * beta * (targetEnergy(timestep,fepstep) - mappingEnergies(timestep,fepstep,fepstep)) )
             ENDIF
           ENDDO
@@ -104,7 +111,8 @@ MODULE FreeEnergy
       DO bin = 1, nBins
         DO fepstep = 1, nFepSteps
           IF (binPopulations(bin,fepstep) > 0) THEN
-            PMF2D(bin,fepstep) = (-1.0d0/beta) * LOG ( EXP(-1.0d0*beta*G_FEP(fepstep)) * PMF2D(bin,fepstep) )
+            ! Should check the args to log are in range here
+            PMF2D(bin,fepstep) = (-1.0d0/beta) * ( fepFactor(fepstep) + LOG(PMF2D(bin,fepstep)) )
           ENDIF
         ENDDO 
       ENDDO
@@ -305,7 +313,7 @@ MODULE FreeEnergy
       binWidth = (max - min) / N
 
       halfBinWidth = binWidth / 2.0d0
-      binMidpoints(:) = binEdges(:) + halfBinWidth
+      binMidpoints(:) = binEdges(1:N) + halfBinWidth
 
       binIndices(:,:)     = 0
       binPopulations(:,:) = 0

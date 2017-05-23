@@ -5,7 +5,7 @@ MODULE Output
   IMPLICIT NONE
 
   PRIVATE
-  PUBLIC :: WriteCSV2D
+  PUBLIC :: WriteCSV2D, WriteXYZ
 
   CONTAINS
 
@@ -63,5 +63,24 @@ MODULE Output
       ENDDO
 
     ENDSUBROUTINE
+
+!*
+
+    SUBROUTINE WriteXYZ(title,elements,coordinates,outUnit)
+
+      IMPLICIT NONE
+      CHARACTER(*) :: title, elements(:)
+      REAL(8), INTENT(IN) :: coordinates(:,:)
+      INTEGER, INTENT(IN) :: outUnit
+      INTEGER :: atom
+
+      WRITE(outUnit,'(I8)') SIZE(elements)
+      WRITE(outUnit,'(A)')  TRIM(ADJUSTL(title))
+
+      DO atom = 1, SIZE(elements)
+        WRITE(outUnit,'(A,1X,3F12.7)') TRIM(ADJUSTL(elements(atom))), coordinates(:,atom)
+      ENDDO
+
+    END SUBROUTINE WriteXYZ
 
 END MODULE Output

@@ -1,7 +1,7 @@
 FC = gfortran
-FCFLAGS = -ffree-line-length-none -fimplicit-none -fmax-errors=0 -std=f95 -Wall -Werror -pedantic-errors
+FCFLAGS = -ffree-line-length-none -fimplicit-none -fcheck=all -fmax-errors=0 -std=f95 -Wall -Werror -pedantic-errors
 
-PROGRAMS = Fepcat Qfep FepMovie Fep2D Fep
+PROGRAMS = Fepcat Qfep FepMovie Fep2D Fep AveGeom
 
 all: $(PROGRAMS)
 
@@ -21,6 +21,7 @@ Input.o:                    Input.f90           FileIO.o Log.o DCDFiles.o
 Data.o:                     Data.f90            Input.o InputCollectiveVariables.o Matrix.o StatisticalFunctions.o InternalCoords.o
 FepMovie.o:                 FepMovie.f90        Util.o Data.o Movies.o MovieOptions.o Log.o
 Util.o:                     Util.f90            Log.f90 Input.o Data.o
+AveGeom.o:                  AveGeom.f90         Util.o Input.o Output.o FileIO.o
 Fep.o:                      Fep.f90             Util.o Data.o Log.o Analysis.o FileIO.o
 Analysis.o:                 Analysis.f90        Output.o StatisticalFunctions.o Input.o Data.o FreeEnergy.o
 Fep2D.o:                    Fep2D.f90           Analysis.o Util.o InputCollectiveVariables.o Input.o
@@ -33,6 +34,7 @@ Qfep:     Qfep.o Data.o Input.o Matrix.o StatisticalFunctions.o InternalCoords.o
 FepMovie: FepMovie.o Util.o Data.o Movies.o Log.o Input.o Matrix.o StatisticalFunctions.o InternalCoords.o FileIO.o Output.o DCDFiles.o DCDHeader.o FreeEnergy.o ArrayUtil.o InputCollectiveVariables.o MovieOptions.o
 Fep2D:    Fep2D.o Analysis.o Output.o StatisticalFunctions.o Input.o Data.o FreeEnergy.o FileIO.o Log.o DCDFiles.o Matrix.o InternalCoords.o DCDHeader.o ArrayUtil.o Util.o InputCollectiveVariables.o
 Fep:      Util.o Data.o Log.o Input.o FileIO.o DCDFiles.o DCDHeader.o InputCollectiveVariables.o Matrix.o StatisticalFunctions.o InternalCoords.o Analysis.o Output.o FreeEnergy.o ArrayUtil.o
+AveGeom:  Util.o Log.o Input.o Data.o FileIO.o DCDFiles.o DCDHeader.o InputCollectiveVariables.o Matrix.o InternalCoords.o Output.o
 
 %: %.o
 	$(FC) $(FCFLAGS) -o $@ $^ $(LDFLAGS)
