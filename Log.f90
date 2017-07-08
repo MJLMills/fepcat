@@ -7,7 +7,7 @@ MODULE Log
   PRIVATE
   PUBLIC :: CreateLogFile, EndLogFile, logUnit
 
-  INTEGER, PARAMETER :: logUnit = 110
+  INTEGER, PARAMETER :: logUnit = 6
 
   CONTAINS
 
