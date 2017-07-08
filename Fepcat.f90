@@ -34,7 +34,7 @@ PROGRAM Fepcat
       CALL CloseFile(outUnit)
 
       CALL OpenFile(outUnit,TRIM(ADJUSTL(outDir))//"/convergence.csv",'write')
-      CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,1),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),outUnit)
+      CALL AnalyzeSimulationConvergence(mappingEnergies(:,:,:,12),mask(:,:),lambda(:),coeffs(1,:,stateA:stateB),skip(:),outUnit)
       CALL CloseFile(outUnit)
 
       CALL OpenFile(outUnit,TRIM(ADJUSTL(outDir))//"/fep-breakdown.csv","write")
