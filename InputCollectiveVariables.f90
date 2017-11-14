@@ -21,7 +21,7 @@ MODULE InputCollectiveVariables
 
     dRC = FileLength("rc.dat")
     CALL AllocateArrays(dRC)
-    CALL ReadReactionCoordinates()
+    CALL ReadReactionCoordinates(dRC)
     CALL WriteReactionCoordinates(logUnit)
 
   END SUBROUTINE DetermineCollectiveVariables
@@ -52,11 +52,12 @@ MODULE InputCollectiveVariables
 
 !*
 
-  SUBROUTINE ReadReactionCoordinates()
+  SUBROUTINE ReadReactionCoordinates(N)
 
     USE FileIO, ONLY : OpenFile, CloseFile
     IMPLICIT NONE
     INTEGER, PARAMETER :: unit = 22
+    INTEGER, INTENT(IN) :: N
     LOGICAL :: success
     INTEGER :: ios, ios2
     INTEGER :: i, j
@@ -65,9 +66,11 @@ MODULE InputCollectiveVariables
     IF (success .EQV. .TRUE.) THEN
 
       i = 0; ios = 0
-      DO WHILE (ios == 0) ! as soon as an attempt is made to read a non-existent line, loop ends
+      !DO WHILE (ios == 0) ! as soon as an attempt is made to read a non-existent line, loop ends
 
-        i = i + 1
+      DO i = 1, N
+
+        !i = i + 1
         READ(unit,'(A)',IOSTAT=ios,ADVANCE='NO') coordTypes(i)
 
         IF (ios == 0) THEN ! there are indices to read
