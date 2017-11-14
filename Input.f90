@@ -436,7 +436,6 @@ MODULE Input
 
 !*
 
-
   SUBROUTINE PrintNameList(logUnit)
 
     ! #DES: Reprint all namelist input to the log file
