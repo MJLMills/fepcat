@@ -21,7 +21,7 @@ Future refinement and a complete description of the code is intended - time perm
 A makefile for GNU make is provided, which assumes use of the gfortran compiler and features of Fortran95 (it has been tested on GNU Fortran (GCC) 4.9.2).
 No other compilers have been tested.
 To compile, issue 'make all' in the root directory.
-This will produce the following executables.
+This will produce the following executables:
 
 *Fepcat* - The main program, perform FEP and FEP/US analyses of simulation trajectories including Flyvbjerg/Petersen statistical tests.
 
