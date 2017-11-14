@@ -1,5 +1,7 @@
 # Fepcat
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.1048451.svg)](https://doi.org/10.5281/zenodo.1048451)
+
 Fepcat is a set of programs for computing Potentials of Mean Force (PMFs) via the Free Energy Perturbation/Umbrella Sampling (FEP/US) method.
 The method is of [Warshel](http://laetro.usc.edu/), and has been implemented previously in the mapping program of [Molaris](http://laetro.usc.edu/software.html) and the QFep program of [Q](http://xray.bmc.uu.se/~aqwww/q/). 
 The procedural forms these programs take make them difficult to modify and extend.
