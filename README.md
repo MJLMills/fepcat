@@ -24,10 +24,15 @@ To compile, issue 'make all' in the root directory.
 This will produce the following executables.
 
 Fepcat - The main program, perform FEP and FEP/US analyses of simulation trajectories including Flyvbjerg/Petersen statistical tests.
+
 Qfep - Reproduce the results and output of a Qfep calculation. Included for sanity checking purposes.
+
 FepMovie - Perform a FEP/US calculation, writing out the necessary input files to produce a movie of the data accumulation process (molecules and plots).
+
 Fep2D - Perform a FEP/US calculation with a 2-dimensional reaction coordinate in place of the typical 1-dimensional energy gap.
+
 Fep - Perform a FEP analysis only (no umbrella sampling corrections).
+
 AveGeom - Compute average geometries over simulation trajectories.
 
 #### Citing the Program
